@@ -1,8 +1,11 @@
 package com.ndifreke.core_banking_api.transaction;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.math.BigDecimal;
 import java.util.UUID;
 
+@Schema(description = "Transfer request object")
 public class TransferRequest {
     private UUID fromAccountId;
     private UUID toAccountId;

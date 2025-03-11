@@ -3,6 +3,12 @@ package com.ndifreke.core_banking_api.auth;
 import com.ndifreke.core_banking_api.user.CustomUserDetailsService;
 import com.ndifreke.core_banking_api.user.User;
 import com.ndifreke.core_banking_api.util.JwtUtil;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +25,7 @@ import com.ndifreke.core_banking_api.user.UserRepository;
 
 @RestController
 @RequestMapping("/api/auth")
+@Tag(name = "Authentication", description = "Endpoints for user authentication")
 public class AuthController {
 
     @Autowired
@@ -36,6 +43,11 @@ public class AuthController {
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
 
+    @Operation(summary = "Authenticate user and generate JWT tokens")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Authentication successful", content = @Content(schema = @Schema(implementation = AuthenticationResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Authentication failed", content = @Content)
+    })
     @PostMapping("/login")
     public ResponseEntity<?> createAuthenticationToken(@RequestBody AuthenticationRequest authenticationRequest) throws Exception {
 
@@ -50,6 +62,11 @@ public class AuthController {
         return ResponseEntity.ok(new AuthenticationResponse(jwt));
     }
 
+    @Operation(summary = "Authenticate user and generate JWT tokens")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Registration successful", content = @Content),
+            @ApiResponse(responseCode = "401", description = "Registration failed", content = @Content)
+    })
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody User user) {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
@@ -59,6 +76,7 @@ public class AuthController {
 
     @Getter
     @Setter
+    @Schema(description = "Authentication Request")
     static class AuthenticationRequest {
         private String username;
         private String password;
@@ -66,6 +84,7 @@ public class AuthController {
     }
 
     @Getter
+    @Schema(description = "Authentication Response")
     static class AuthenticationResponse {
         private final String jwt;
 

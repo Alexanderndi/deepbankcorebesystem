@@ -40,6 +40,7 @@ public class TransactionService {
 
     @Transactional
     public void transferFunds(UUID fromAccountId, UUID toAccountId, BigDecimal amount, UUID authenticatedUserId) {
+        validateAmount(amount, "transfer");
         logger.info("Transfer request: fromAccountId={}, toAccountId={}, amount={}, authenticatedUserId={}",
                 fromAccountId, toAccountId, amount, authenticatedUserId);
 
@@ -74,6 +75,7 @@ public class TransactionService {
 
     @Transactional
     public void depositFunds(UUID accountId, BigDecimal amount, UUID authenticatedUserId) {
+        validateAmount(amount, "deposit");
         logger.info("Deposit request: accountId={}, amount={}, authenticatedUserId={}",
                 accountId, amount, authenticatedUserId);
 
@@ -94,6 +96,7 @@ public class TransactionService {
 
     @Transactional
     public void withdrawFunds(UUID accountId, BigDecimal amount, UUID authenticatedUserId) {
+        validateAmount(amount, "withdrawal");
         logger.info("Withdrawal request: accountId={}, amount={}, authenticatedUserId={}",
                 accountId, amount, authenticatedUserId);
 
@@ -125,9 +128,12 @@ public class TransactionService {
         return transactions;
     }
 
-    private void validateAmount(BigDecimal amount) {
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Amount must be greater than zero");
+    private void validateAmount(BigDecimal amount, String operation) {
+        if (amount == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Amount cannot be null for " + operation);
+        }
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Amount must be greater than zero for " + operation);
         }
     }
 }
