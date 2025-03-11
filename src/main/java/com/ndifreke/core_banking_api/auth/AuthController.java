@@ -74,14 +74,6 @@ public class AuthController {
         return ResponseEntity.ok("User registered successfully");
     }
 
-    @Getter
-    @Setter
-    @Schema(description = "Authentication Request")
-    static class AuthenticationRequest {
-        private String username;
-        private String password;
-
-    }
 
     @Getter
     @Schema(description = "Authentication Response")
