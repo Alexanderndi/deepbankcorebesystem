@@ -3,9 +3,9 @@ package com.ndifreke.core_banking_api.transaction;
 import com.ndifreke.core_banking_api.account.Account;
 import com.ndifreke.core_banking_api.account.AccountService;
 import com.ndifreke.core_banking_api.transaction.transactionType.Deposit;
-import com.ndifreke.core_banking_api.transaction.transactionType.Transfer;
 import com.ndifreke.core_banking_api.transaction.transactionType.Withdrawal;
 import com.ndifreke.core_banking_api.transaction.transactionType.repository.DepositRepository;
+import com.ndifreke.core_banking_api.transaction.transactionType.Transfer;
 import com.ndifreke.core_banking_api.transaction.transactionType.repository.TransferRepository;
 import com.ndifreke.core_banking_api.transaction.transactionType.repository.WithdrawalRepository;
 import org.slf4j.Logger;
@@ -17,7 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,23 +29,27 @@ public class TransactionService {
     private AccountService accountService;
 
     @Autowired
-    private TransferRepository transferRepository;
-
-    @Autowired
     private DepositRepository depositRepository;
 
     @Autowired
     private WithdrawalRepository withdrawalRepository;
 
+    @Autowired
+    private TransferRepository transferRepository;
+
     @Transactional
-    public void transferFunds(UUID fromAccountId, UUID toAccountId, BigDecimal amount, UUID authenticatedUserId) {
+    public Transfer transferFunds(UUID fromAccountId, UUID toAccountId, BigDecimal amount, String description, UUID authenticatedUserId) {
         validateAmount(amount, "transfer");
-        logger.info("Transfer request: fromAccountId={}, toAccountId={}, amount={}, authenticatedUserId={}",
-                fromAccountId, toAccountId, amount, authenticatedUserId);
+        logger.info("Transfer request: fromAccountId={}, toAccountId={}, amount={}, description={}, authenticatedUserId={}",
+                fromAccountId, toAccountId, amount, description, authenticatedUserId);
 
         Account fromAccount = accountService.getAccountById(fromAccountId, authenticatedUserId);
         Account toAccount = accountService.findAccountById(toAccountId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Destination account not found"));
+
+        if(fromAccountId == null || toAccountId == null){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fromAccountId and toAccountId must not be null for transfer");
+        }
 
         logger.info("From Account User ID: {}, To Account User ID: {}", fromAccount.getUserId(), toAccount.getUserId());
 
@@ -63,18 +66,21 @@ public class TransactionService {
         accountService.updateAccount(fromAccount);
         accountService.updateAccount(toAccount);
 
-        Transfer transfer = new Transfer();
-        transfer.setFromAccountId(fromAccountId);
-        transfer.setToAccountId(toAccountId);
-        transfer.setAmount(amount);
-        transferRepository.save(transfer);
+        Transfer transaction = new Transfer();
+        transaction.setFromAccountId(fromAccountId);
+        transaction.setToAccountId(toAccountId);
+        transaction.setAmount(amount);
+        transaction.setTransactionType(TransactionType.TRANSFER);
+        transaction.setDescription(description);
+        transferRepository.save(transaction);
 
-        logger.info("Transfer successful: fromAccountId={}, toAccountId={}, amount={}",
-                fromAccountId, toAccountId, amount);
+        logger.info("Transfer successful: fromAccountId={}, toAccountId={}, amount={}, description={}",
+                fromAccountId, toAccountId, amount, description);
+        return transaction;
     }
 
     @Transactional
-    public void depositFunds(UUID accountId, BigDecimal amount, UUID authenticatedUserId) {
+    public Deposit depositFunds(UUID accountId, BigDecimal amount, UUID authenticatedUserId) {
         validateAmount(amount, "deposit");
         logger.info("Deposit request: accountId={}, amount={}, authenticatedUserId={}",
                 accountId, amount, authenticatedUserId);
@@ -89,13 +95,15 @@ public class TransactionService {
         Deposit deposit = new Deposit();
         deposit.setAccountId(accountId);
         deposit.setAmount(amount);
+        deposit.setTransactionType(TransactionType.DEPOSIT);
         depositRepository.save(deposit);
 
         logger.info("Deposit successful: accountId={}, amount={}", accountId, amount);
+        return deposit;
     }
 
     @Transactional
-    public void withdrawFunds(UUID accountId, BigDecimal amount, UUID authenticatedUserId) {
+    public Withdrawal withdrawFunds(UUID accountId, BigDecimal amount, UUID authenticatedUserId) {
         validateAmount(amount, "withdrawal");
         logger.info("Withdrawal request: accountId={}, amount={}, authenticatedUserId={}",
                 accountId, amount, authenticatedUserId);
@@ -114,18 +122,16 @@ public class TransactionService {
         Withdrawal withdrawal = new Withdrawal();
         withdrawal.setAccountId(accountId);
         withdrawal.setAmount(amount);
+        withdrawal.setTransactionType(TransactionType.WITHDRAWAL);
         withdrawalRepository.save(withdrawal);
 
         logger.info("Withdrawal successful: accountId={}, amount={}", accountId, amount);
+        return withdrawal;
     }
 
-    public List<Object> getTransactionHistory(UUID accountId, UUID authenticatedUserId) {
+    public List<Transfer> getTransactionHistory(UUID accountId, UUID authenticatedUserId) {
         accountService.validateAccountOwnership(accountId, authenticatedUserId);
-        List<Object> transactions = new ArrayList<>();
-        transactions.addAll(transferRepository.findByFromAccountIdOrToAccountIdOrderByTransactionDateDesc(accountId, accountId));
-        transactions.addAll(depositRepository.findByAccountIdOrderByTransactionDateDesc(accountId));
-        transactions.addAll(withdrawalRepository.findByAccountIdOrderByTransactionDateDesc(accountId));
-        return transactions;
+        return transferRepository.findByFromAccountIdOrToAccountIdOrderByTransactionDateDesc(accountId, accountId);
     }
 
     private void validateAmount(BigDecimal amount, String operation) {

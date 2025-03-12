@@ -1,35 +1,55 @@
 package com.ndifreke.core_banking_api.transaction.transactionType;
 
+
+import com.ndifreke.core_banking_api.transaction.TransactionType;
 import jakarta.persistence.*;
+import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.GenericGenerator;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.UUID;
 
 @Entity
-@Table(name = "transfers")
 @Getter
 @Setter
+@Data
+@Table(name = "transfers")
 public class Transfer {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "transfer_id")
-    private UUID transferId;
+    @GeneratedValue(generator = "uuid2")
+    @GenericGenerator(name = "uuid2", strategy = "uuid2")
+    @Column(name = "transaction_id", columnDefinition = "BINARY(16)")
+    private UUID transactionId;
 
-    @Column(name = "from_account_id")
+    @Column(name = "from_account_id", columnDefinition = "BINARY(16)", nullable = true)
     private UUID fromAccountId;
 
-    @Column(name = "to_account_id")
+    @Column(name = "to_account_id", columnDefinition = "BINARY(16)", nullable = true)
     private UUID toAccountId;
 
-    @Column(name = "amount")
+    @Column(nullable = false)
     private BigDecimal amount;
 
-    @Column(name = "transaction_date")
+    @Column(nullable = false)
+    private LocalDateTime timestamp;
+
+    private String description;
+
+    @Column(name = "account_id", columnDefinition = "BINARY(16)", nullable = true) // Add this line
+    private UUID accountId;
+
     private Date transactionDate = new Date();
 
-    // Getters and setters...
+    @Enumerated(EnumType.STRING)
+    private TransactionType transactionType; // e.g., Transfer, Deposit, Withdrawal
+
+    @PrePersist
+    public void prePersist() {
+        this.timestamp = LocalDateTime.now();
+    }
 }

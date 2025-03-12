@@ -1,5 +1,6 @@
 package com.ndifreke.core_banking_api.transaction.transactionType;
 
+import com.ndifreke.core_banking_api.transaction.TransactionType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -27,6 +28,9 @@ public class Withdrawal {
 
     @Column(name = "transaction_date")
     private Date transactionDate = new Date();
+
+    @Enumerated(EnumType.STRING)
+    private TransactionType transactionType;
 
     // Getters and setters...
 }

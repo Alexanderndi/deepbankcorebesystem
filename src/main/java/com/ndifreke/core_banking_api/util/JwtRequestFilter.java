@@ -30,7 +30,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         final String authorizationHeader = request.getHeader("Authorization");
-        final String requestURI = request.getRequestURI(); // Get the request URI
+        final String requestURI = request.getRequestURI();
 
         String username = null;
         String jwt = null;
@@ -40,7 +40,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             try {
                 username = jwtUtil.extractUsername(jwt);
             } catch (ExpiredJwtException e) {
-                if (!requestURI.equals("/api/auth/login")) {
+                if (!requestURI.equals("/api/auth/login") && !requestURI.equals("/api/auth/register")) {
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                     response.setContentType("application/json");
                     response.getWriter().write("{\"error\": \"JWT Expired\"}");

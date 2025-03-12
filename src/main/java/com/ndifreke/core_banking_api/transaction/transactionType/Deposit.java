@@ -1,10 +1,12 @@
 package com.ndifreke.core_banking_api.transaction.transactionType;
 
+import com.ndifreke.core_banking_api.transaction.TransactionType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.UUID;
 
@@ -27,6 +29,9 @@ public class Deposit {
 
     @Column(name = "transaction_date")
     private Date transactionDate = new Date();
+
+    @Enumerated(EnumType.STRING)
+    private TransactionType transactionType; // e.g., Transfer, Deposit, Withdrawal
 
     // Getters and setters...
 }

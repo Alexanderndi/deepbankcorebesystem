@@ -1,4 +1,4 @@
-package com.ndifreke.core_banking_api.transaction;
+package com.ndifreke.core_banking_api.transaction.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -10,8 +10,10 @@ public class TransferRequest {
     private UUID fromAccountId;
     private UUID toAccountId;
     private BigDecimal amount;
+    private String description;
 
-    // Getters and setters
+    // Getters and setters...
+
     public UUID getFromAccountId() {
         return fromAccountId;
     }
@@ -34,5 +36,13 @@ public class TransferRequest {
 
     public void setAmount(BigDecimal amount) {
         this.amount = amount;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 }

@@ -14,9 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import java.security.Key;
-import java.util.Base64;
-import java.util.Date;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Function;
 
 @Component
@@ -42,18 +40,35 @@ public class JwtUtil {
     public UUID extractUserId(String token) {
         Claims claims = extractAllClaims(token);
         String userIdString = claims.get("userId", String.class);
-        return UUID.fromString(userIdString);
+        if (userIdString != null) {
+            return UUID.fromString(userIdString);
+        } else {
+            return null;
+        }
     }
 
     public String generateToken(UserDetails userDetails) {
-        UUID userId = ((CustomUserDetails) userDetails).getUserId();
-        Claims claims = Jwts.claims();
-        claims.put("userId", userId.toString());
+        Map<String, Object> claims = new HashMap<>();
+
+        if (userDetails instanceof CustomUserDetails) {
+            CustomUserDetails customUserDetails = (CustomUserDetails) userDetails;
+            claims.put("firstName", customUserDetails.getFirstName());
+            claims.put("lastName", customUserDetails.getLastName());
+            claims.put("userId", customUserDetails.getUser().getUserId().toString()); // Add this line
+        }
+
+        return createToken(claims, userDetails.getUsername());
+    }
+
+    private String createToken(Map<String, Object> claims, String subject) {
+        Date now = new Date();
+        Date validity = new Date(now.getTime() + jwtExpirationInMs);
+
         return Jwts.builder()
                 .setClaims(claims)
-                .setSubject(userDetails.getUsername())
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + jwtExpirationInMs))
+                .setSubject(subject)
+                .setIssuedAt(now)
+                .setExpiration(validity)
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
