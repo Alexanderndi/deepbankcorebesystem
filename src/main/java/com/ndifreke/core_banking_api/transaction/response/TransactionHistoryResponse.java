@@ -7,15 +7,15 @@ import java.util.List;
 @Schema(description = "Transaction history response object")
 public class TransactionHistoryResponse {
 
-    private List<TransferResponse> transactions;
+    private List<TransactionResponseInterface> transactions;
 
     // Getters and setters...
 
-    public List<TransferResponse> getTransactions() {
+    public List<TransactionResponseInterface> getTransactions() {
         return transactions;
     }
 
-    public void setTransactions(List<TransferResponse> transactions) {
+    public void setTransactions(List<TransactionResponseInterface> transactions) {
         this.transactions = transactions;
     }
 }

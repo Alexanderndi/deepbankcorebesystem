@@ -2,6 +2,7 @@ package com.ndifreke.core_banking_api.transaction;
 
 import com.ndifreke.core_banking_api.account.Account;
 import com.ndifreke.core_banking_api.account.AccountService;
+import com.ndifreke.core_banking_api.transaction.response.*;
 import com.ndifreke.core_banking_api.transaction.transactionType.Deposit;
 import com.ndifreke.core_banking_api.transaction.transactionType.Withdrawal;
 import com.ndifreke.core_banking_api.transaction.transactionType.repository.DepositRepository;
@@ -17,8 +18,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class TransactionService {
@@ -129,9 +134,39 @@ public class TransactionService {
         return withdrawal;
     }
 
-    public List<Transfer> getTransactionHistory(UUID accountId, UUID authenticatedUserId) {
+    public TransactionHistoryResponse getTransactionHistory(UUID accountId, UUID authenticatedUserId) {
         accountService.validateAccountOwnership(accountId, authenticatedUserId);
-        return transferRepository.findByFromAccountIdOrToAccountIdOrderByTransactionDateDesc(accountId, accountId);
+
+        List<TransferResponse> transfers = transferRepository.findByFromAccountIdOrToAccountIdOrderByTransactionDateDesc(accountId, accountId).stream()
+                .map(this::convertToTransferResponse).toList();
+        List<DepositResponse> deposits = depositRepository.findByAccountIdOrderByTransactionDateDesc(accountId).stream()
+                .map(this::convertToDepositResponse).toList();
+        List<WithdrawalResponse> withdrawals = withdrawalRepository.findByAccountIdOrderByTransactionDateDesc(accountId).stream()
+                .map(this::convertToWithdrawalResponse).toList();
+
+        List<TransactionResponseInterface> transactionResponses = Stream.of(
+                        (List<TransactionResponseInterface>) (List<?>) transfers,
+                        (List<TransactionResponseInterface>) (List<?>) deposits,
+                        (List<TransactionResponseInterface>) (List<?>) withdrawals
+                )
+                .flatMap(List::stream)
+                .sorted(Comparator.comparing(this::getTransactionDate).reversed())
+                .toList();
+
+        TransactionHistoryResponse response = new TransactionHistoryResponse();
+        response.setTransactions(transactionResponses);
+        return response;
+    }
+
+    private Date getTransactionDate(TransactionResponseInterface transaction) {
+        if (transaction instanceof TransferResponse transfer) {
+            return transfer.getTransactionDate();
+        } else if (transaction instanceof DepositResponse deposit) {
+            return deposit.getTransactionDate();
+        } else if (transaction instanceof WithdrawalResponse withdrawal) {
+            return withdrawal.getTransactionDate();
+        }
+        return null;
     }
 
     private void validateAmount(BigDecimal amount, String operation) {
@@ -141,5 +176,53 @@ public class TransactionService {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Amount must be greater than zero for " + operation);
         }
+    }
+
+    private TransferResponse convertToTransferResponse(Transfer transaction) {
+        return getTransferResponse(transaction);
+    }
+
+    private TransferResponse convertToTransactionResponse(Transfer transaction) {
+        return getTransferResponse(transaction);
+    }
+
+    static TransferResponse getTransferResponse(Transfer transaction) {
+        TransferResponse response = new TransferResponse();
+        response.setTransactionId(transaction.getTransactionId());
+        response.setFromAccountId(transaction.getFromAccountId());
+        response.setToAccountId(transaction.getToAccountId());
+        response.setAmount(transaction.getAmount());
+        response.setTransactionDate(transaction.getTransactionDate());
+        response.setTransactionType(transaction.getTransactionType());
+        response.setDescription(transaction.getDescription());
+        return response;
+    }
+
+    private DepositResponse convertToDepositResponse(Deposit deposit) {
+        return getDepositResponse(deposit);
+    }
+
+    static DepositResponse getDepositResponse(Deposit deposit) {
+        DepositResponse response = new DepositResponse();
+        response.setDepositId(deposit.getDepositId());
+        response.setAccountId(deposit.getAccountId());
+        response.setAmount(deposit.getAmount());
+        response.setTransactionDate(deposit.getTransactionDate());
+        response.setTransactionType(deposit.getTransactionType());
+        return response;
+    }
+
+    private WithdrawalResponse convertToWithdrawalResponse(Withdrawal withdrawal) {
+        return getWithdrawalResponse(withdrawal);
+    }
+
+    static WithdrawalResponse getWithdrawalResponse(Withdrawal withdrawal) {
+        WithdrawalResponse response = new WithdrawalResponse();
+        response.setWithdrawalId(withdrawal.getWithdrawalId());
+        response.setAccountId(withdrawal.getAccountId());
+        response.setAmount(withdrawal.getAmount());
+        response.setTransactionDate(withdrawal.getTransactionDate());
+        response.setTransactionType(withdrawal.getTransactionType());
+        return response;
     }
 }

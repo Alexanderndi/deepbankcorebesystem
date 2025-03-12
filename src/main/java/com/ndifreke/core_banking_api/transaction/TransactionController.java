@@ -22,9 +22,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
+
+import static com.ndifreke.core_banking_api.transaction.TransactionService.*;
 
 @RestController
 @RequestMapping("/api/transactions")
@@ -50,7 +50,7 @@ public class TransactionController {
         UUID authenticatedUserId = jwtUtil.extractUserId(jwtUtil.getTokenFromRequest(request));
         try {
             Transfer transferFunds = transactionService.transferFunds(transferRequest.getFromAccountId(), transferRequest.getToAccountId(), transferRequest.getAmount(), transferRequest.getDescription(), authenticatedUserId);
-            return ResponseEntity.ok(convertToTransactionResponse(transferFunds));
+            return ResponseEntity.ok(convertToTransferResponse(transferFunds));
         } catch (ResponseStatusException e) {
             return ResponseEntity.status(e.getStatusCode()).body(null);
         }
@@ -104,51 +104,26 @@ public class TransactionController {
     public ResponseEntity<TransactionHistoryResponse> getTransactionHistory(@PathVariable UUID accountId, HttpServletRequest request) {
         UUID authenticatedUserId = jwtUtil.extractUserId(jwtUtil.getTokenFromRequest(request));
         try {
-            List<Transfer> transactions = transactionService.getTransactionHistory(accountId, authenticatedUserId);
-            return ResponseEntity.ok(convertToTransactionHistoryResponse(transactions));
+            TransactionHistoryResponse transactionHistoryResponse = transactionService.getTransactionHistory(accountId, authenticatedUserId);
+            return ResponseEntity.ok(transactionHistoryResponse);
         } catch (ResponseStatusException e) {
             return ResponseEntity.status(e.getStatusCode()).build();
         }
     }
 
+    private TransferResponse convertToTransferResponse(Transfer transaction) {
+        return getTransferResponse(transaction);
+    }
+
     private TransferResponse convertToTransactionResponse(Transfer transaction) {
-        TransferResponse response = new TransferResponse();
-        response.setTransactionId(transaction.getTransactionId());
-        response.setFromAccountId(transaction.getFromAccountId());
-        response.setToAccountId(transaction.getToAccountId());
-        response.setAmount(transaction.getAmount());
-        response.setTransactionDate(transaction.getTransactionDate());
-        response.setTransactionType(transaction.getTransactionType());
-        response.setDescription(transaction.getDescription());
-        return response;
+        return getTransferResponse(transaction);
     }
 
     private DepositResponse convertToDepositResponse(Deposit deposit) {
-        DepositResponse response = new DepositResponse();
-        response.setDepositId(deposit.getDepositId());
-        response.setAccountId(deposit.getAccountId());
-        response.setAmount(deposit.getAmount());
-        response.setTransactionDate(deposit.getTransactionDate());
-        response.setTransactionType(deposit.getTransactionType());
-        return response;
+        return getDepositResponse(deposit);
     }
 
     private WithdrawalResponse convertToWithdrawalResponse(Withdrawal withdrawal) {
-        WithdrawalResponse response = new WithdrawalResponse();
-        response.setWithdrawalId(withdrawal.getWithdrawalId());
-        response.setAccountId(withdrawal.getAccountId());
-        response.setAmount(withdrawal.getAmount());
-        response.setTransactionDate(withdrawal.getTransactionDate());
-        response.setTransactionType(withdrawal.getTransactionType());
-        return response;
-    }
-
-    private TransactionHistoryResponse convertToTransactionHistoryResponse(List<Transfer> transactions) {
-        TransactionHistoryResponse response = new TransactionHistoryResponse();
-        List<TransferResponse> transactionResponses = transactions.stream()
-                .map(this::convertToTransactionResponse)
-                .collect(Collectors.toList());
-        response.setTransactions(transactionResponses);
-        return response;
+        return getWithdrawalResponse(withdrawal);
     }
 }
