@@ -2,6 +2,7 @@ package com.ndifreke.core_banking_api.transaction;
 
 import com.ndifreke.core_banking_api.account.Account;
 import com.ndifreke.core_banking_api.account.AccountService;
+import com.ndifreke.core_banking_api.notification.MailService;
 import com.ndifreke.core_banking_api.transaction.response.*;
 import com.ndifreke.core_banking_api.transaction.transactionType.Deposit;
 import com.ndifreke.core_banking_api.transaction.transactionType.Withdrawal;
@@ -9,6 +10,8 @@ import com.ndifreke.core_banking_api.transaction.transactionType.repository.Depo
 import com.ndifreke.core_banking_api.transaction.transactionType.Transfer;
 import com.ndifreke.core_banking_api.transaction.transactionType.repository.TransferRepository;
 import com.ndifreke.core_banking_api.transaction.transactionType.repository.WithdrawalRepository;
+import com.ndifreke.core_banking_api.user.User;
+import com.ndifreke.core_banking_api.user.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,6 +44,12 @@ public class TransactionService {
 
     @Autowired
     private TransferRepository transferRepository;
+
+    @Autowired
+    private MailService mailService;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Transactional
     public Transfer transferFunds(UUID fromAccountId, UUID toAccountId, BigDecimal amount, String description, UUID authenticatedUserId) {
@@ -79,6 +88,18 @@ public class TransactionService {
         transaction.setDescription(description);
         transferRepository.save(transaction);
 
+        // Send Email Notification
+        User fromUser = userRepository.findById(fromAccount.getUserId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User associated with source account not found"));
+        User toUser = userRepository.findById(toAccount.getUserId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User associated with destination account not found"));
+        String subject = "Transfer Successful";
+        String text = String.format("A transfer of %.2f from account %s to account %s has been completed. Description: %s",
+                amount, fromAccountId, toAccountId, description);
+        mailService.sendTransactionEmail(fromUser.getEmail(), subject, text);
+        mailService.sendTransactionEmail(toUser.getEmail(), subject, text);
+
+
         logger.info("Transfer successful: fromAccountId={}, toAccountId={}, amount={}, description={}",
                 fromAccountId, toAccountId, amount, description);
         return transaction;
@@ -102,6 +123,15 @@ public class TransactionService {
         deposit.setAmount(amount);
         deposit.setTransactionType(TransactionType.DEPOSIT);
         depositRepository.save(deposit);
+
+        // Send Email Notification
+        User user = userRepository.findById(account.getUserId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User associated with account not found"));
+        String subject = "Deposit Successful";
+        String text = String.format("A deposit of %.2f to account %s has been completed. Description: %s",
+                amount, accountId, amount);
+        mailService.sendTransactionEmail(user.getEmail(), subject, text);
+
 
         logger.info("Deposit successful: accountId={}, amount={}", accountId, amount);
         return deposit;
@@ -130,7 +160,16 @@ public class TransactionService {
         withdrawal.setTransactionType(TransactionType.WITHDRAWAL);
         withdrawalRepository.save(withdrawal);
 
+        // Send Email Notification
+        User user = userRepository.findById(account.getUserId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User associated with account not found"));
+        String subject = "Withdrawal Successful";
+        String text = String.format("A withdrawal of %.2f from account %s has been completed. Description: %s",
+                amount, accountId, amount);
+        mailService.sendTransactionEmail(user.getEmail(), subject, text);
+
         logger.info("Withdrawal successful: accountId={}, amount={}", accountId, amount);
+
         return withdrawal;
     }
 
