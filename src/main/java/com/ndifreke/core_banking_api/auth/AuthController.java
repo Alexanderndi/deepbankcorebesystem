@@ -1,5 +1,6 @@
 package com.ndifreke.core_banking_api.auth;
 
+import com.ndifreke.core_banking_api.notification.MailService;
 import com.ndifreke.core_banking_api.security.UserRoleEnum;
 import com.ndifreke.core_banking_api.user.CustomUserDetailsService;
 import com.ndifreke.core_banking_api.user.User;
@@ -49,6 +50,9 @@ public class AuthController {
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
 
+    @Autowired
+    private MailService mailService;
+
     @Operation(summary = "Authenticate user and generate JWT tokens")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Authentication successful", content = @Content(schema = @Schema(implementation = AuthenticationResponse.class))),
@@ -66,6 +70,10 @@ public class AuthController {
             final UserDetails userDetails = userDetailsService.loadUserByUsername(authenticationRequest.getUsername());
 
             final String jwt = jwtUtil.generateToken(userDetails);
+
+            User user = userRepository.findByUsername(authenticationRequest.getUsername()).orElseThrow();
+            // Send login email
+            mailService.sendLoginEmail(user.getEmail(), user.getFirstName(), user.getLastName());
 
             return ResponseEntity.ok(new AuthenticationResponse(jwt));
         } catch (BadCredentialsException e) {

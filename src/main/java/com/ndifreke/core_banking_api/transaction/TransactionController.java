@@ -6,8 +6,6 @@ import com.ndifreke.core_banking_api.transaction.response.DepositResponse;
 import com.ndifreke.core_banking_api.transaction.response.TransactionHistoryResponse;
 import com.ndifreke.core_banking_api.transaction.response.TransferResponse;
 import com.ndifreke.core_banking_api.transaction.response.WithdrawalResponse;
-import com.ndifreke.core_banking_api.transaction.transactionType.Deposit;
-import com.ndifreke.core_banking_api.transaction.transactionType.Withdrawal;
 import com.ndifreke.core_banking_api.transaction.transactionType.Transfer;
 import com.ndifreke.core_banking_api.util.JwtUtil;
 import io.swagger.v3.oas.annotations.Operation;
@@ -17,18 +15,20 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.util.UUID;
-
-import static com.ndifreke.core_banking_api.transaction.TransactionService.*;
 
 @RestController
 @RequestMapping("/api/transactions")
 @Tag(name = "Transactions", description = "Endpoints for managing transactions")
+@Validated // Required for @Valid on path variables
 public class TransactionController {
 
     @Autowired
@@ -40,17 +40,24 @@ public class TransactionController {
     @Operation(summary = "Transfer funds between accounts")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Funds transferred successfully", content = @Content(schema = @Schema(implementation = TransferResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Bad request", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Bad request (e.g., validation error)", content = @Content),
             @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content),
-            @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content),
-            @ApiResponse(responseCode = "404", description = "Not found", content = @Content)
+            @ApiResponse(responseCode = "403", description = "Forbidden (e.g., insufficient funds)", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Account not found", content = @Content)
     })
     @PostMapping("/transfer")
-    public ResponseEntity<TransferResponse> transferFunds(@RequestBody TransferRequest transferRequest, HttpServletRequest request) {
+    public ResponseEntity<TransferResponse> transferFunds(
+            @Valid @RequestBody TransferRequest transferRequest, // Add @Valid
+            HttpServletRequest request) {
         UUID authenticatedUserId = jwtUtil.extractUserId(jwtUtil.getTokenFromRequest(request));
         try {
-            Transfer transferFunds = transactionService.transferFunds(transferRequest.getFromAccountId(), transferRequest.getToAccountId(), transferRequest.getAmount(), transferRequest.getDescription(), authenticatedUserId);
-            return ResponseEntity.ok(convertToTransferResponse(transferFunds));
+            TransferResponse transferResponse = transactionService.transferFunds(
+                    transferRequest.getFromAccountId(),
+                    transferRequest.getToAccountId(),
+                    transferRequest.getAmount(),
+                    transferRequest.getDescription(),
+                    authenticatedUserId);
+            return ResponseEntity.ok(transferResponse);
         } catch (ResponseStatusException e) {
             return ResponseEntity.status(e.getStatusCode()).body(null);
         }
@@ -59,16 +66,22 @@ public class TransactionController {
     @Operation(summary = "Deposit funds into an account")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Funds deposited successfully", content = @Content(schema = @Schema(implementation = DepositResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Bad request", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Bad request (e.g., validation error)", content = @Content),
             @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content),
             @ApiResponse(responseCode = "404", description = "Account not found", content = @Content)
     })
     @PostMapping("/deposit/{accountId}")
-    public ResponseEntity<DepositResponse> depositFunds(@PathVariable UUID accountId, @RequestBody AmountRequest amountRequest, HttpServletRequest request) {
+    public ResponseEntity<DepositResponse> depositFunds(
+            @PathVariable UUID accountId,
+            @Valid @RequestBody AmountRequest amountRequest, // Add @Valid
+            HttpServletRequest request) {
         UUID authenticatedUserId = jwtUtil.extractUserId(jwtUtil.getTokenFromRequest(request));
         try {
-            Deposit deposit = transactionService.depositFunds(accountId, amountRequest.getAmount(), authenticatedUserId);
-            return ResponseEntity.ok(convertToDepositResponse(deposit));
+            DepositResponse depositResponse = transactionService.depositFunds(
+                    accountId,
+                    amountRequest.getAmount(),
+                    authenticatedUserId);
+            return ResponseEntity.ok(depositResponse);
         } catch (ResponseStatusException e) {
             return ResponseEntity.status(e.getStatusCode()).body(null);
         }
@@ -77,17 +90,23 @@ public class TransactionController {
     @Operation(summary = "Withdraw funds from an account")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Funds withdrawn successfully", content = @Content(schema = @Schema(implementation = WithdrawalResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Bad request", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Bad request (e.g., validation error, insufficient funds)", content = @Content),
             @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content),
             @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content),
             @ApiResponse(responseCode = "404", description = "Account not found", content = @Content)
     })
     @PostMapping("/withdraw/{accountId}")
-    public ResponseEntity<WithdrawalResponse> withdrawFunds(@PathVariable UUID accountId, @RequestBody AmountRequest amountRequest, HttpServletRequest request) {
+    public ResponseEntity<WithdrawalResponse> withdrawFunds(
+            @PathVariable UUID accountId,
+            @Valid @RequestBody AmountRequest amountRequest, // Add @Valid
+            HttpServletRequest request) {
         UUID authenticatedUserId = jwtUtil.extractUserId(jwtUtil.getTokenFromRequest(request));
         try {
-            Withdrawal withdrawFunds = transactionService.withdrawFunds(accountId, amountRequest.getAmount(), authenticatedUserId);
-            return ResponseEntity.ok(convertToWithdrawalResponse(withdrawFunds));
+            WithdrawalResponse withdrawalResponse = transactionService.withdrawFunds(
+                    accountId,
+                    amountRequest.getAmount(),
+                    authenticatedUserId);
+            return ResponseEntity.ok(withdrawalResponse);
         } catch (ResponseStatusException e) {
             return ResponseEntity.status(e.getStatusCode()).body(null);
         }
@@ -101,7 +120,9 @@ public class TransactionController {
             @ApiResponse(responseCode = "404", description = "Account not found", content = @Content)
     })
     @GetMapping("/history/{accountId}")
-    public ResponseEntity<TransactionHistoryResponse> getTransactionHistory(@PathVariable UUID accountId, HttpServletRequest request) {
+    public ResponseEntity<TransactionHistoryResponse> getTransactionHistory(
+            @PathVariable UUID accountId,
+            HttpServletRequest request) {
         UUID authenticatedUserId = jwtUtil.extractUserId(jwtUtil.getTokenFromRequest(request));
         try {
             TransactionHistoryResponse transactionHistoryResponse = transactionService.getTransactionHistory(accountId, authenticatedUserId);
@@ -109,21 +130,5 @@ public class TransactionController {
         } catch (ResponseStatusException e) {
             return ResponseEntity.status(e.getStatusCode()).build();
         }
-    }
-
-    private TransferResponse convertToTransferResponse(Transfer transaction) {
-        return getTransferResponse(transaction);
-    }
-
-    private TransferResponse convertToTransactionResponse(Transfer transaction) {
-        return getTransferResponse(transaction);
-    }
-
-    private DepositResponse convertToDepositResponse(Deposit deposit) {
-        return getDepositResponse(deposit);
-    }
-
-    private WithdrawalResponse convertToWithdrawalResponse(Withdrawal withdrawal) {
-        return getWithdrawalResponse(withdrawal);
     }
 }

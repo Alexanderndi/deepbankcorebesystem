@@ -5,9 +5,9 @@ import com.ndifreke.core_banking_api.account.AccountService;
 import com.ndifreke.core_banking_api.notification.MailService;
 import com.ndifreke.core_banking_api.transaction.response.*;
 import com.ndifreke.core_banking_api.transaction.transactionType.Deposit;
+import com.ndifreke.core_banking_api.transaction.transactionType.Transfer;
 import com.ndifreke.core_banking_api.transaction.transactionType.Withdrawal;
 import com.ndifreke.core_banking_api.transaction.transactionType.repository.DepositRepository;
-import com.ndifreke.core_banking_api.transaction.transactionType.Transfer;
 import com.ndifreke.core_banking_api.transaction.transactionType.repository.TransferRepository;
 import com.ndifreke.core_banking_api.transaction.transactionType.repository.WithdrawalRepository;
 import com.ndifreke.core_banking_api.user.User;
@@ -52,7 +52,7 @@ public class TransactionService {
     private UserRepository userRepository;
 
     @Transactional
-    public Transfer transferFunds(UUID fromAccountId, UUID toAccountId, BigDecimal amount, String description, UUID authenticatedUserId) {
+    public TransferResponse transferFunds(UUID fromAccountId, UUID toAccountId, BigDecimal amount, String description, UUID authenticatedUserId) {
         validateAmount(amount, "transfer");
         logger.info("Transfer request: fromAccountId={}, toAccountId={}, amount={}, description={}, authenticatedUserId={}",
                 fromAccountId, toAccountId, amount, description, authenticatedUserId);
@@ -61,7 +61,7 @@ public class TransactionService {
         Account toAccount = accountService.findAccountById(toAccountId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Destination account not found"));
 
-        if(fromAccountId == null || toAccountId == null){
+        if (fromAccountId == null || toAccountId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fromAccountId and toAccountId must not be null for transfer");
         }
 
@@ -80,13 +80,14 @@ public class TransactionService {
         accountService.updateAccount(fromAccount);
         accountService.updateAccount(toAccount);
 
-        Transfer transaction = new Transfer();
-        transaction.setFromAccountId(fromAccountId);
-        transaction.setToAccountId(toAccountId);
-        transaction.setAmount(amount);
-        transaction.setTransactionType(TransactionType.TRANSFER);
-        transaction.setDescription(description);
-        transferRepository.save(transaction);
+        Transfer transfer = new Transfer();
+        transfer.setFromAccountId(fromAccountId);
+        transfer.setToAccountId(toAccountId);
+        transfer.setAmount(amount);
+        transfer.setTransactionDate(new Date());
+        transfer.setTransactionType(TransactionType.TRANSFER);
+        transfer.setDescription(description);
+        transferRepository.save(transfer);
 
         // Send Email Notification
         User fromUser = userRepository.findById(fromAccount.getUserId())
@@ -94,19 +95,32 @@ public class TransactionService {
         User toUser = userRepository.findById(toAccount.getUserId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User associated with destination account not found"));
         String subject = "Transfer Successful";
-        String text = String.format("A transfer of %.2f from account %s to account %s has been completed. Description: %s",
-                amount, fromAccountId, toAccountId, description);
+        String text = String.format(
+                "<html><body>" +
+                        "<p>Dear %s,</p>" +
+                        "<p>A transfer of <b>%.2f</b> has been debited from your account (%s) to account (%s).</p>" +
+                        "<p>Description: %s</p>" +
+                        "</body></html>",
+                fromUser.getFirstName(), amount, fromAccount.getAccountNumber(), toAccount.getAccountNumber(), description);
         mailService.sendTransactionEmail(fromUser.getEmail(), subject, text);
-        mailService.sendTransactionEmail(toUser.getEmail(), subject, text);
 
+        String subject2 = "Transfer Successful";
+        String creditText = String.format(
+                "<html><body>" +
+                        "<p>Dear %s,</p>" +
+                        "<p>A transfer of <b>%.2f</b> has been credited to your account (%s).</p>" +
+                        "<p>Description: %s</p>" +
+                        "</body></html>",
+                toUser.getFirstName(), amount, toAccount.getAccountNumber(), fromAccount.getAccountNumber(), description);
+        mailService.sendTransactionEmail(toUser.getEmail(), subject2, creditText);
 
         logger.info("Transfer successful: fromAccountId={}, toAccountId={}, amount={}, description={}",
                 fromAccountId, toAccountId, amount, description);
-        return transaction;
+        return convertToTransferResponse(transfer);
     }
 
     @Transactional
-    public Deposit depositFunds(UUID accountId, BigDecimal amount, UUID authenticatedUserId) {
+    public DepositResponse depositFunds(UUID accountId, BigDecimal amount, UUID authenticatedUserId) {
         validateAmount(amount, "deposit");
         logger.info("Deposit request: accountId={}, amount={}, authenticatedUserId={}",
                 accountId, amount, authenticatedUserId);
@@ -121,6 +135,7 @@ public class TransactionService {
         Deposit deposit = new Deposit();
         deposit.setAccountId(accountId);
         deposit.setAmount(amount);
+        deposit.setTransactionDate(new Date());
         deposit.setTransactionType(TransactionType.DEPOSIT);
         depositRepository.save(deposit);
 
@@ -128,17 +143,20 @@ public class TransactionService {
         User user = userRepository.findById(account.getUserId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User associated with account not found"));
         String subject = "Deposit Successful";
-        String text = String.format("A deposit of %.2f to account %s has been completed. Description: %s",
-                amount, accountId, amount);
+        String text = String.format(
+                "<html><body>" +
+                        "<p>Dear %s,</p>" +
+                        "<p>A deposit of <b>%.2f</b> has been credited to your account (%s).</p>" +
+                        "</body></html>",
+                user.getFirstName(), amount, account.getAccountNumber());
         mailService.sendTransactionEmail(user.getEmail(), subject, text);
 
-
         logger.info("Deposit successful: accountId={}, amount={}", accountId, amount);
-        return deposit;
+        return convertToDepositResponse(deposit);
     }
 
     @Transactional
-    public Withdrawal withdrawFunds(UUID accountId, BigDecimal amount, UUID authenticatedUserId) {
+    public WithdrawalResponse withdrawFunds(UUID accountId, BigDecimal amount, UUID authenticatedUserId) {
         validateAmount(amount, "withdrawal");
         logger.info("Withdrawal request: accountId={}, amount={}, authenticatedUserId={}",
                 accountId, amount, authenticatedUserId);
@@ -164,13 +182,16 @@ public class TransactionService {
         User user = userRepository.findById(account.getUserId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User associated with account not found"));
         String subject = "Withdrawal Successful";
-        String text = String.format("A withdrawal of %.2f from account %s has been completed. Description: %s",
-                amount, accountId, amount);
+        String text = String.format(
+                "<html><body>" +
+                        "<p>Dear %s,</p>" +
+                        "<p>A withdrawal of <b>%.2f</b> has been debited from your account (%s).</p>" +
+                        "</body></html>",
+                user.getFirstName(), amount, account.getAccountNumber());
         mailService.sendTransactionEmail(user.getEmail(), subject, text);
 
         logger.info("Withdrawal successful: accountId={}, amount={}", accountId, amount);
-
-        return withdrawal;
+        return convertToWithdrawalResponse(withdrawal);
     }
 
     public TransactionHistoryResponse getTransactionHistory(UUID accountId, UUID authenticatedUserId) {
@@ -217,31 +238,19 @@ public class TransactionService {
         }
     }
 
-    private TransferResponse convertToTransferResponse(Transfer transaction) {
-        return getTransferResponse(transaction);
-    }
-
-    private TransferResponse convertToTransactionResponse(Transfer transaction) {
-        return getTransferResponse(transaction);
-    }
-
-    static TransferResponse getTransferResponse(Transfer transaction) {
+    private TransferResponse convertToTransferResponse(Transfer transfer) {
         TransferResponse response = new TransferResponse();
-        response.setTransactionId(transaction.getTransactionId());
-        response.setFromAccountId(transaction.getFromAccountId());
-        response.setToAccountId(transaction.getToAccountId());
-        response.setAmount(transaction.getAmount());
-        response.setTransactionDate(transaction.getTransactionDate());
-        response.setTransactionType(transaction.getTransactionType());
-        response.setDescription(transaction.getDescription());
+        response.setTransactionId(transfer.getTransactionId());
+        response.setFromAccountId(transfer.getFromAccountId());
+        response.setToAccountId(transfer.getToAccountId());
+        response.setAmount(transfer.getAmount());
+        response.setTransactionType(transfer.getTransactionType());
+        response.setTransactionDate(transfer.getTransactionDate());
+        response.setDescription(transfer.getDescription());
         return response;
     }
 
     private DepositResponse convertToDepositResponse(Deposit deposit) {
-        return getDepositResponse(deposit);
-    }
-
-    static DepositResponse getDepositResponse(Deposit deposit) {
         DepositResponse response = new DepositResponse();
         response.setDepositId(deposit.getDepositId());
         response.setAccountId(deposit.getAccountId());
@@ -252,16 +261,12 @@ public class TransactionService {
     }
 
     private WithdrawalResponse convertToWithdrawalResponse(Withdrawal withdrawal) {
-        return getWithdrawalResponse(withdrawal);
-    }
-
-    static WithdrawalResponse getWithdrawalResponse(Withdrawal withdrawal) {
         WithdrawalResponse response = new WithdrawalResponse();
         response.setWithdrawalId(withdrawal.getWithdrawalId());
         response.setAccountId(withdrawal.getAccountId());
         response.setAmount(withdrawal.getAmount());
-        response.setTransactionDate(withdrawal.getTransactionDate());
         response.setTransactionType(withdrawal.getTransactionType());
+        response.setTransactionDate(withdrawal.getTransactionDate());
         return response;
     }
 }
