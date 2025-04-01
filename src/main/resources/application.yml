@@ -47,10 +47,6 @@ jwt:
   secret: 4cb8d78ee951f97ba735898fde76bdf352d03617c4347ef0e6412134841ac694
   expiration: 3600000
 
-app:
-  verification:
-    url: http://localhost:8989/api/auth/verify
-
 server:
   port: 8989
 

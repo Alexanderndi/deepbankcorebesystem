@@ -1,11 +1,8 @@
 package com.ndifreke.core_banking_api.notification;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -21,61 +18,15 @@ public class MailService {
     public void sendTransactionEmail(String to, String subject, String text) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom("test@example.com");
+            message.setFrom("test@example.com"); // Replace with a valid sender (even if MailDev)
             message.setTo(to);
             message.setSubject(subject);
             message.setText(text);
             mailSender.send(message);
-            System.out.println("Email sent successfully to: " + to);
+            System.out.println("Email sent successfully to: " + to); // Add logging
         } catch (Exception e) {
             e.printStackTrace();
-            System.err.println("Error sending email to: " + to + ": " + e.getMessage());
-        }
-    }
-
-    public void sendVerificationEmail(String to, String verificationCode, String verificationUrl) {
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "utf-8"); // true = multipart
-            helper.setFrom("your-email@example.com");
-            helper.setTo(to);
-            helper.setSubject("Please Verify Your Account");
-            helper.setText(
-                    "<html><body>" +
-                            "<p>Dear User,</p>" +
-                            "<p>Please click the following link to verify your account:</p>" +
-                            "<a href='" + verificationUrl + "?code=" + verificationCode + "'>Verify Account</a>" +
-                            "<p>Or, you can manually enter the following code: <b>" + verificationCode + "</b></p>" +
-                            "</body></html>",
-                    true // true = isHtml
-            );
-
-            mailSender.send(message);
-        } catch (MessagingException e) {
-            e.printStackTrace();
-            // Handle exception (e.g., log error)
-        }
-    }
-
-    public void sendLoginEmail(String to, String firstName, String lastName) {
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "utf-8");
-            helper.setFrom("your-email@example.com");
-            helper.setTo(to);
-            helper.setSubject("Successful Login");
-            helper.setText(
-                    "<html><body>" +
-                            "<p>Dear " + firstName + " " + lastName + ",</p>" +
-                            "<p>You have successfully logged in to your account.</p>" +
-                            "</body></html>",
-                    true
-            );
-
-            mailSender.send(message);
-        } catch (MessagingException e) {
-            e.printStackTrace();
-            // Handle exception
+            System.err.println("Error sending email to: " + to + ": " + e.getMessage()); // Add error logging
         }
     }
 }

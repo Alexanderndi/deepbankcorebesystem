@@ -1,10 +1,8 @@
 package com.ndifreke.core_banking_api.auth;
 
-import com.ndifreke.core_banking_api.notification.MailService;
 import com.ndifreke.core_banking_api.security.UserRoleEnum;
 import com.ndifreke.core_banking_api.user.CustomUserDetailsService;
 import com.ndifreke.core_banking_api.user.User;
-import com.ndifreke.core_banking_api.user.UserRepository;
 import com.ndifreke.core_banking_api.util.JwtUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -13,9 +11,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Getter;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -31,7 +27,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ndifreke.core_banking_api.user.UserRepository;
 
 import java.util.List;
-import java.util.Random;
 import java.util.stream.Collectors;
 
 @RestController
@@ -54,18 +49,10 @@ public class AuthController {
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
 
-    @Autowired
-    private MailService mailService;
-
-    @Value("${app.verification.url}")
-    private String verificationUrl;
-
-
     @Operation(summary = "Authenticate user and generate JWT tokens")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Authentication successful", content = @Content(schema = @Schema(implementation = AuthenticationResponse.class))),
-            @ApiResponse(responseCode = "401", description = "Authentication failed", content = @Content),
-            @ApiResponse(responseCode = "403", description = "Account not verified", content = @Content)
+            @ApiResponse(responseCode = "401", description = "Authentication failed", content = @Content)
     })
     @PostMapping("/login")
     public ResponseEntity<?> createAuthenticationToken(@RequestBody AuthenticationRequest authenticationRequest) throws Exception {
@@ -77,16 +64,8 @@ public class AuthController {
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
             final UserDetails userDetails = userDetailsService.loadUserByUsername(authenticationRequest.getUsername());
-            User user = userRepository.findByUsername(authenticationRequest.getUsername()).orElseThrow();
-
-            if (!user.isVerified()) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Account not verified. Please verify your account.");
-            }
 
             final String jwt = jwtUtil.generateToken(userDetails);
-
-            // Send login email
-            mailService.sendLoginEmail(user.getEmail(), user.getFirstName(), user.getLastName());
 
             return ResponseEntity.ok(new AuthenticationResponse(jwt));
         } catch (BadCredentialsException e) {
@@ -94,10 +73,10 @@ public class AuthController {
         }
     }
 
-    @Operation(summary = "Register a new user")
+    @Operation(summary = "Authenticate user and generate JWT tokens")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Registration successful", content = @Content),
-            @ApiResponse(responseCode = "400", description = "Bad request", content = @Content)
+            @ApiResponse(responseCode = "401", description = "Registration failed", content = @Content)
     })
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody RegisterRequest registerRequest) {
@@ -113,37 +92,18 @@ public class AuthController {
                 .collect(Collectors.toList());
 
         user.setRoles(roles);
-
-        // Generate Verification Code
-        String verificationCode = generateVerificationCode();
-        user.setVerificationCode(verificationCode);
-
         userRepository.save(user);
 
-        // Send verification email
-        mailService.sendVerificationEmail(user.getEmail(), verificationCode, verificationUrl);
-
-
-        return ResponseEntity.ok("User registered successfully. Please check your email to verify your account.");
+        return ResponseEntity.ok("User registered successfully");
     }
 
-    @PostMapping("/verify")
-    public ResponseEntity<?> verifyAccount(@RequestBody VerificationRequest verificationRequest) {
-        User user = userRepository.findByUsername(verificationRequest.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+    @Getter
+    @Schema(description = "Authentication Response")
+    static class AuthenticationResponse {
+        private final String jwt;
 
-        if (user.getVerificationCode().equals(verificationRequest.getVerificationCode())) {
-            user.setVerified(true);
-            user.setVerificationCode(null);
-            userRepository.save(user);
-            return ResponseEntity.ok("Account verified successfully. You can now log in.");
-        } else {
-            return ResponseEntity.badRequest().body("Invalid verification code.");
+        public AuthenticationResponse(String jwt) {
+            this.jwt = jwt;
         }
-    }
-
-    private String generateVerificationCode() {
-        Random random = new Random();
-        return String.format("%06d", random.nextInt(999999));
     }
 }

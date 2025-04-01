@@ -48,10 +48,6 @@ public class User {
     @Column(name = "role")
     private List<UserRoleEnum> roles;
 
-    private String verificationCode;
-
-    private boolean verified = false;
-
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return roles.stream()
                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
