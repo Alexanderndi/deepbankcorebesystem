@@ -3,10 +3,10 @@ package com.ndifreke.core_banking_api.notification;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import java.math.BigDecimal;
 
 @Service
 public class MailService {
@@ -18,6 +18,9 @@ public class MailService {
         this.mailSender = mailSender;
     }
 
+    /**
+     * Generic method to send an email with HTML content.
+     */
     public void sendTransactionEmail(String to, String subject, String text) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -34,7 +37,123 @@ public class MailService {
         }
     }
 
-//    public void sendVerificationEmail(String to, String verificationCode, String verificationUrl) {
+    /**
+     * Email for when funds are debited from the sender's account in a transfer.
+     */
+    public void sendTransferDebitEmail(String to, String firstName, BigDecimal amount,
+                                       String fromAccountNumber, String toAccountNumber, String description) {
+        String subject = "CBA DEBIT Transaction Notification";
+        String text = String.format(
+                "<html><body>" +
+                        "<p>Dear %s,</p>" +
+                        "<p>A transfer of <b>%.2f</b> has been debited from your account (%s) to account (%s).</p>" +
+                        "<p>Description: %s</p>" +
+                        "</body></html>",
+                firstName, amount, fromAccountNumber, toAccountNumber, description
+        );
+        sendTransactionEmail(to, subject, text);
+    }
+
+    /**
+     * Email for when funds are credited to the receiver's account in a transfer.
+     */
+    public void sendTransferCreditEmail(String to, String firstName, BigDecimal amount,
+                                        String toAccountNumber, String fromAccountNumber, String description) {
+        String subject = "CBA CREDIT Transaction Notification\"";
+        String text = String.format(
+                "<html><body>" +
+                        "<p>Dear %s,</p>" +
+                        "<p>A transfer of <b>%.2f</b> has been credited to your account (%s) from account (%s).</p>" +
+                        "<p>Description: %s</p>" +
+                        "</body></html>",
+                firstName, amount, toAccountNumber, fromAccountNumber, description
+        );
+        sendTransactionEmail(to, subject, text);
+    }
+
+    /**
+     * Email for a successful deposit.
+     */
+    public void sendDepositEmail(String to, String firstName, BigDecimal amount, String accountNumber) {
+        String subject = "CBA CREDIT Transaction Notification\"";
+        String text = String.format(
+                "<html><body>" +
+                        "<p>Dear %s,</p>" +
+                        "<p>A deposit of <b>%.2f</b> has been credited to your account (%s).</p>" +
+                        "</body></html>",
+                firstName, amount, accountNumber
+        );
+        sendTransactionEmail(to, subject, text);
+    }
+
+    /**
+     * Email for a successful withdrawal.
+     */
+    public void sendWithdrawalEmail(String to, String firstName, BigDecimal amount, String accountNumber) {
+        String subject = "CBA CREDIT Transaction Notification\"";
+        String text = String.format(
+                "<html><body>" +
+                        "<p>Dear %s,</p>" +
+                        "<p>A withdrawal of <b>%.2f</b> has been debited from your account (%s).</p>" +
+                        "</body></html>",
+                firstName, amount, accountNumber
+        );
+        sendTransactionEmail(to, subject, text);
+    }
+
+    /**
+     * Email for fraud alerts, specifying the rule broken and optionally the amount.
+     */
+    public void sendFraudAlertEmail(String to, String reason, BigDecimal amount) {
+        String subject = "Fraud Alert: Transaction Blocked";
+        String text;
+        if ("Large transfer amount".equals(reason) && amount != null) {
+            text = String.format(
+                    "<html><body>" +
+                            "<p>Dear User,</p>" +
+                            "<p>Your transaction attempt was blocked due to a large transfer amount: %.2f</p>" +
+                            "<p>Please review your transaction and try again later.</p>" +
+                            "</body></html>",
+                    amount
+            );
+        } else {
+            text = String.format(
+                    "<html><body>" +
+                            "<p>Dear User,</p>" +
+                            "<p>Your transaction attempt was blocked due to: %s</p>" +
+                            "<p>Please wait and try again later.</p>" +
+                            "</body></html>",
+                    reason
+            );
+        }
+        sendTransactionEmail(to, subject, text);
+    }
+
+    /**
+     * Email for successful login (unchanged from original).
+     */
+    public void sendLoginEmail(String to, String firstName, String lastName) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "utf-8");
+            helper.setFrom("test@example.com");
+            helper.setTo(to);
+            helper.setSubject("Successful Login");
+            helper.setText(
+                    "<html><body>" +
+                            "<p>Dear " + firstName + " " + lastName + ",</p>" +
+                            "<p>You have successfully logged in to your account.</p>" +
+                            "</body></html>",
+                    true
+            );
+            mailSender.send(message);
+        } catch (MessagingException e) {
+            e.printStackTrace();
+            System.err.println("Error sending email to: " + to + ": " + e.getMessage());
+        }
+    }
+
+    //    public void sendVerificationEmail(String to, String verificationCode, String verificationUrl) {
 //        try {
 //            MimeMessage message = mailSender.createMimeMessage();
 //            MimeMessageHelper helper = new MimeMessageHelper(message, true, "utf-8"); // true = multipart
@@ -57,27 +176,4 @@ public class MailService {
 //            // Handle exception (e.g., log error)
 //        }
 //    }
-
-    public void sendLoginEmail(String to, String firstName, String lastName) {
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "utf-8");
-            helper.setFrom("test@example.com");
-            helper.setTo(to);
-            helper.setSubject("Successful Login");
-            helper.setText(
-                    "<html><body>" +
-                            "<p>Dear " + firstName + " " + lastName + ",</p>" +
-                            "<p>You have successfully logged in to your account.</p>" +
-                            "</body></html>",
-                    true
-            );
-
-            mailSender.send(message);
-        } catch (MessagingException e) {
-            e.printStackTrace();
-            // Handle exception
-            System.err.println("Error sending email to: " + to + ": " + e.getMessage());
-        }
-    }
 }

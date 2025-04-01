@@ -3,6 +3,7 @@ package com.ndifreke.core_banking_api.transaction;
 import com.ndifreke.core_banking_api.account.Account;
 import com.ndifreke.core_banking_api.account.AccountService;
 import com.ndifreke.core_banking_api.notification.MailService;
+import com.ndifreke.core_banking_api.security.fraud_detection.FraudRules;
 import com.ndifreke.core_banking_api.transaction.response.*;
 import com.ndifreke.core_banking_api.transaction.transactionType.Deposit;
 import com.ndifreke.core_banking_api.transaction.transactionType.Transfer;
@@ -15,16 +16,16 @@ import com.ndifreke.core_banking_api.user.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -49,6 +50,9 @@ public class TransactionService {
     private MailService mailService;
 
     @Autowired
+    private CacheManager cacheManager;
+
+    @Autowired
     private UserRepository userRepository;
 
     @Transactional
@@ -61,15 +65,28 @@ public class TransactionService {
         Account toAccount = accountService.findAccountById(toAccountId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Destination account not found"));
 
-        if (fromAccountId == null || toAccountId == null) {
+        if(fromAccountId == null || toAccountId == null){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fromAccountId and toAccountId must not be null for transfer");
         }
-
-        logger.info("From Account User ID: {}, To Account User ID: {}", fromAccount.getUserId(), toAccount.getUserId());
 
         if (fromAccount.getBalance().compareTo(amount) < 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Insufficient funds");
         }
+
+        // Check for fraud
+        String fraudReason = isFraudulentTransfer(fromAccount, toAccount, amount);
+        if (fraudReason != null) {
+            User fromUser = userRepository.findById(fromAccount.getUserId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+            // Send fraud alert email
+            if ("Large transfer amount".equals(fraudReason)) {
+                mailService.sendFraudAlertEmail(fromUser.getEmail(), fraudReason, amount);
+            } else {
+                mailService.sendFraudAlertEmail(fromUser.getEmail(), fraudReason, null);
+            }
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Transaction blocked due to potential fraud: " + fraudReason);
+        }
+
 
         BigDecimal newFromBalance = fromAccount.getBalance().subtract(amount);
         BigDecimal newToBalance = toAccount.getBalance().add(amount);
@@ -89,30 +106,25 @@ public class TransactionService {
         transfer.setDescription(description);
         transferRepository.save(transfer);
 
-        // Send Email Notification
-        User fromUser = userRepository.findById(fromAccount.getUserId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User associated with source account not found"));
-        User toUser = userRepository.findById(toAccount.getUserId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User associated with destination account not found"));
-        String subject = "Transfer Successful";
-        String text = String.format(
-                "<html><body>" +
-                        "<p>Dear %s,</p>" +
-                        "<p>A transfer of <b>%.2f</b> has been debited from your account (%s) to account (%s).</p>" +
-                        "<p>Description: %s</p>" +
-                        "</body></html>",
-                fromUser.getFirstName(), amount, fromAccount.getAccountNumber(), toAccount.getAccountNumber(), description);
-        mailService.sendTransactionEmail(fromUser.getEmail(), subject, text);
+        Cache cache = cacheManager.getCache("transactionTimestamps");
+        if (cache != null) {
+            Cache.ValueWrapper wrapper = cache.get(fromAccount.getAccountNumber());
+            List<LocalDateTime> timestamps = (wrapper != null) ? (List<LocalDateTime>) wrapper.get() : new ArrayList<>();
+            assert timestamps != null;
+            timestamps.add(LocalDateTime.now());
+            cache.put(fromAccount.getAccountNumber(), timestamps);
+        }
 
-        String subject2 = "Transfer Successful";
-        String creditText = String.format(
-                "<html><body>" +
-                        "<p>Dear %s,</p>" +
-                        "<p>A transfer of <b>%.2f</b> has been credited to your account (%s).</p>" +
-                        "<p>Description: %s</p>" +
-                        "</body></html>",
-                toUser.getFirstName(), amount, toAccount.getAccountNumber(), fromAccount.getAccountNumber(), description);
-        mailService.sendTransactionEmail(toUser.getEmail(), subject2, creditText);
+        // Send success emails
+        User fromUser = userRepository.findById(fromAccount.getUserId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sender user not found"));
+        User toUser = userRepository.findById(toAccount.getUserId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Receiver user not found"));
+
+        mailService.sendTransferDebitEmail(fromUser.getEmail(), fromUser.getFirstName(), amount,
+                fromAccount.getAccountNumber(), toAccount.getAccountNumber(), description);
+        mailService.sendTransferCreditEmail(toUser.getEmail(), toUser.getFirstName(), amount,
+                toAccount.getAccountNumber(), fromAccount.getAccountNumber(), description);
 
         logger.info("Transfer successful: fromAccountId={}, toAccountId={}, amount={}, description={}",
                 fromAccountId, toAccountId, amount, description);
@@ -141,15 +153,8 @@ public class TransactionService {
 
         // Send Email Notification
         User user = userRepository.findById(account.getUserId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User associated with account not found"));
-        String subject = "Deposit Successful";
-        String text = String.format(
-                "<html><body>" +
-                        "<p>Dear %s,</p>" +
-                        "<p>A deposit of <b>%.2f</b> has been credited to your account (%s).</p>" +
-                        "</body></html>",
-                user.getFirstName(), amount, account.getAccountNumber());
-        mailService.sendTransactionEmail(user.getEmail(), subject, text);
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        mailService.sendDepositEmail(user.getEmail(), user.getFirstName(), amount, account.getAccountNumber());
 
         logger.info("Deposit successful: accountId={}, amount={}", accountId, amount);
         return convertToDepositResponse(deposit);
@@ -180,15 +185,8 @@ public class TransactionService {
 
         // Send Email Notification
         User user = userRepository.findById(account.getUserId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User associated with account not found"));
-        String subject = "Withdrawal Successful";
-        String text = String.format(
-                "<html><body>" +
-                        "<p>Dear %s,</p>" +
-                        "<p>A withdrawal of <b>%.2f</b> has been debited from your account (%s).</p>" +
-                        "</body></html>",
-                user.getFirstName(), amount, account.getAccountNumber());
-        mailService.sendTransactionEmail(user.getEmail(), subject, text);
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        mailService.sendWithdrawalEmail(user.getEmail(), user.getFirstName(), amount, account.getAccountNumber());
 
         logger.info("Withdrawal successful: accountId={}, amount={}", accountId, amount);
         return convertToWithdrawalResponse(withdrawal);
@@ -239,18 +237,30 @@ public class TransactionService {
     }
 
     private TransferResponse convertToTransferResponse(Transfer transfer) {
+        return TransactionService.getTransferResponse(transfer);
+    }
+
+    private TransferResponse convertToTransactionResponse(Transfer transaction) {
+        return TransactionService.getTransferResponse(transaction);
+    }
+
+    static TransferResponse getTransferResponse(Transfer transaction) {
         TransferResponse response = new TransferResponse();
-        response.setTransactionId(transfer.getTransactionId());
-        response.setFromAccountId(transfer.getFromAccountId());
-        response.setToAccountId(transfer.getToAccountId());
-        response.setAmount(transfer.getAmount());
-        response.setTransactionType(transfer.getTransactionType());
-        response.setTransactionDate(transfer.getTransactionDate());
-        response.setDescription(transfer.getDescription());
+        response.setTransactionId(transaction.getTransactionId());
+        response.setFromAccountId(transaction.getFromAccountId());
+        response.setToAccountId(transaction.getToAccountId());
+        response.setAmount(transaction.getAmount());
+        response.setTransactionDate(transaction.getTransactionDate());
+        response.setTransactionType(transaction.getTransactionType());
+        response.setDescription(transaction.getDescription());
         return response;
     }
 
     private DepositResponse convertToDepositResponse(Deposit deposit) {
+        return TransactionService.getDepositResponse(deposit);
+    }
+
+    static DepositResponse getDepositResponse(Deposit deposit) {
         DepositResponse response = new DepositResponse();
         response.setDepositId(deposit.getDepositId());
         response.setAccountId(deposit.getAccountId());
@@ -261,12 +271,68 @@ public class TransactionService {
     }
 
     private WithdrawalResponse convertToWithdrawalResponse(Withdrawal withdrawal) {
+        return TransactionService.getWithdrawalResponse(withdrawal);
+    }
+
+    static WithdrawalResponse getWithdrawalResponse(Withdrawal withdrawal) {
         WithdrawalResponse response = new WithdrawalResponse();
         response.setWithdrawalId(withdrawal.getWithdrawalId());
         response.setAccountId(withdrawal.getAccountId());
         response.setAmount(withdrawal.getAmount());
-        response.setTransactionType(withdrawal.getTransactionType());
         response.setTransactionDate(withdrawal.getTransactionDate());
+        response.setTransactionType(withdrawal.getTransactionType());
         return response;
+    }
+
+    private String isFraudulentTransfer(Account fromAccount, Account toAccount, BigDecimal amount) {
+        if (amount.compareTo(FraudRules.LARGE_TRANSFER_THRESHOLD) > 0) {
+            logger.warn("Potential fraud: Large transfer amount detected: {}", amount);
+            return "Large transfer amount";
+        }
+        if (isAccountBlacklisted(fromAccount.getAccountNumber()) || isAccountBlacklisted(toAccount.getAccountNumber())) {
+            logger.warn("Potential fraud: Transaction with blacklisted account");
+            return "Blacklisted account";
+        }
+        if (isHighFrequencyTransaction(fromAccount.getAccountNumber())) {
+            logger.warn("Potential fraud: High frequency transaction from account: {}", fromAccount.getAccountNumber());
+            return "High frequency transaction";
+        }
+        return null;
+    }
+
+    private boolean isAccountBlacklisted(String accountNumber) {
+        return false;
+    }
+
+    private boolean isHighFrequencyTransaction(String accountNumber) {
+        // Get the cache instance for transaction timestamps
+        Cache cache = cacheManager.getCache("transactionTimestamps");
+        if (cache == null) {
+            return false;
+        }
+
+        // Retrieve the list of timestamps from the cache for this account
+        Cache.ValueWrapper wrapper = cache.get(accountNumber);
+        List<LocalDateTime> timestamps = (wrapper != null) ? (List<LocalDateTime>) wrapper.get() : null;
+
+        // If no timestamps exist or the list is empty, no high-frequency transactions
+        if (timestamps == null || timestamps.isEmpty()) {
+            return false;
+        }
+
+        // Calculate the time window (10 minutes ago from now)
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime tenMinutesAgo = now.minusMinutes(FraudRules.HIGH_FREQUENCY_TIMEFRAME_MINUTES);
+
+        // Filter timestamps to keep only those within the last 10 minutes
+        List<LocalDateTime> recentTimestamps = timestamps.stream()
+                .filter(t -> t.isAfter(tenMinutesAgo))
+                .collect(Collectors.toList());
+
+        // Update the cache with the filtered list to remove old timestamps
+        cache.put(accountNumber, recentTimestamps);
+
+        // Check if the number of recent transactions meets or exceeds the limit (5)
+        return recentTimestamps.size() >= FraudRules.HIGH_FREQUENCY_TRANSACTION_LIMIT;
     }
 }

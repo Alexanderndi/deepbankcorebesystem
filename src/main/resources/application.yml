@@ -14,10 +14,9 @@ spring:
       hibernate:
         format_sql: true
     database-platform: org.hibernate.dialect.MySQL8Dialect
-  data:
-    redis:
-      host: localhost
-      port: 6379
+  cache:
+    type: redis
+    cache-names: accounts
   mail:
     host: localhost
     port: 1025
@@ -45,6 +44,10 @@ spring:
           json:
             trusted:
               packages: com.ndifreke.core_banking_api.transaction.events
+  data:
+    redis:
+      host: localhost
+      port: 6379
 
 jwt:
   secret: 4cb8d78ee951f97ba735898fde76bdf352d03617c4347ef0e6412134841ac694

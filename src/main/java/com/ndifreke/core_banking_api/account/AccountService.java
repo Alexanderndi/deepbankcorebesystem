@@ -1,13 +1,11 @@
 package com.ndifreke.core_banking_api.account;
-
-import com.ndifreke.core_banking_api.cache.redis.AccountCache;
 import com.ndifreke.core_banking_api.util.JwtUtil;
-import jakarta.persistence.Cacheable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -19,13 +17,14 @@ import java.util.UUID;
 
 @Service
 public class AccountService {
-    @Autowired
-    private AccountCache accountCache;
-
     private static final Logger logger = LoggerFactory.getLogger(JwtUtil.class);
 
     @Autowired
-    private AccountRepository accountRepository;
+    private final AccountRepository accountRepository;
+
+    public AccountService(AccountRepository accountRepository) {
+        this.accountRepository = accountRepository;
+    }
 
     @CachePut(value = "accounts", key = "#result.accountId")
     public Account createAccount(Account account, BigDecimal initialBalance, UUID authenticatedUserId) {
@@ -43,7 +42,7 @@ public class AccountService {
         return accountRepository.save(account);
     }
 
-//    @Cacheable(value = "accounts", key = "#accountId")
+    @Cacheable(value = "accounts", key = "#accountId")
     public Account getAccountById(UUID accountId, UUID authenticatedUserId) {
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found"));
@@ -59,6 +58,7 @@ public class AccountService {
         return account;
     }
 
+    @Cacheable(value = "accounts", key = "#userId")
     public List<Account> getAccountsByUserId(UUID userId, UUID authenticatedUserId) {
         if (!userId.equals(authenticatedUserId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");

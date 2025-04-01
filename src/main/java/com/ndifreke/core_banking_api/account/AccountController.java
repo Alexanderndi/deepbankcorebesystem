@@ -1,5 +1,6 @@
 package com.ndifreke.core_banking_api.account;
 
+import com.ndifreke.core_banking_api.cache.config.CacheConfig;
 import com.ndifreke.core_banking_api.util.JwtUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -28,6 +29,9 @@ public class AccountController {
 
     @Autowired
     private JwtUtil jwtUtil;
+
+    @Autowired
+    private CacheConfig cacheConfig;
 
     @Operation(summary = "Create a new account")
     @ApiResponses(value = {
@@ -131,6 +135,11 @@ public class AccountController {
         } catch (ResponseStatusException e) {
             return ResponseEntity.status(e.getStatusCode()).build();
         }
+    }
+
+    @GetMapping("/cacheData")
+    public void getCacheData() {
+        cacheConfig.printCacheContents("accounts");
     }
 
     @Schema(description = "Account creation/update request object")

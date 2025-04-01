@@ -1,4 +1,10 @@
 services:
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379" # Map Redis port to host
+    container_name: core-banking-redis
+    restart: always
   maildev:
     image: maildev/maildev
     ports:
@@ -9,11 +15,14 @@ services:
       context: . # Path to the directory containing the Dockerfile
       dockerfile: Dockerfile # Name of the Dockerfile (default is Dockerfile)
     ports:
-      - "8989:8989"
+      - "9696:9696"
     depends_on:
       - maildev
+      - redis
     environment:
       SPRING_MAIL_HOST: maildev
       SPRING_MAIL_PORT: 1025
       SPRING_MAIL_USERNAME: ""
       SPRING_MAIL_PASSWORD: ""
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
