@@ -13,6 +13,7 @@ spring:
     properties:
       hibernate:
         format_sql: true
+      javax.persistence.validation.mode: AUTO
     database-platform: org.hibernate.dialect.MySQL8Dialect
   cache:
     type: redis

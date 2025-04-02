@@ -1,4 +1,4 @@
-package com.ndifreke.core_banking_api.dto;
+package com.ndifreke.core_banking_api.auth.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;

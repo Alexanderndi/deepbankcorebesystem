@@ -4,6 +4,8 @@ import com.ndifreke.core_banking_api.dto.account.AccountRequest;
 import com.ndifreke.core_banking_api.entity.Account;
 import com.ndifreke.core_banking_api.account.AccountService;
 import com.ndifreke.core_banking_api.config.CacheConfig;
+import com.ndifreke.core_banking_api.exception.NotFoundException;
+import com.ndifreke.core_banking_api.user.UserService;
 import com.ndifreke.core_banking_api.util.JwtUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -84,12 +86,12 @@ public class AccountController {
     @GetMapping("/{accountId}")
     public ResponseEntity<Account> getAccountById(@PathVariable UUID accountId, HttpServletRequest request) {
         UUID authenticatedUserId = jwtUtil.extractUserId(jwtUtil.getTokenFromRequest(request));
-        try {
-            Account account = accountService.getAccountById(accountId, authenticatedUserId);
-            return ResponseEntity.ok(account);
-        } catch (ResponseStatusException e) {
-            return ResponseEntity.status(e.getStatusCode()).body(null);
+        Account account = accountService.getAccountById(accountId, authenticatedUserId);
+
+        if (account == null) {
+            throw new NotFoundException("Account not found with ID: " + accountId);
         }
+        return ResponseEntity.ok(account);
     }
 
     /**
@@ -160,7 +162,7 @@ public class AccountController {
                 return ResponseEntity.badRequest().build();
             }
 
-            Account account = accountService.updateAccount(updatedAccount);
+            Account account = accountService.updateAccount(updatedAccount, authenticatedUserId);
             return ResponseEntity.ok(account);
         } catch (ResponseStatusException e) {
             return ResponseEntity.status(e.getStatusCode()).body(null);

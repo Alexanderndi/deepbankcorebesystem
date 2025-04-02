@@ -13,6 +13,7 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 /**
  * The type Deposit event consumer.
@@ -37,13 +38,13 @@ public class DepositEventConsumer {
      * @param event the event
      */
     @KafkaListener(topics = "deposit-events", groupId = "core-banking-group")
-    public void consumeDepositEvent(DepositEvent event) {
+    public void consumeDepositEvent(DepositEvent event, UUID authenticatedUserId) {
         logger.info("Received deposit event: {}", event);
 
         Account account = accountService.findAccountById(event.getAccountId()).orElseThrow();
         BigDecimal newBalance = account.getBalance().add(event.getAmount());
         account.setBalance(newBalance);
-        accountService.updateAccount(account);
+        accountService.updateAccount(account, authenticatedUserId);
 
         Deposit deposit = new Deposit();
         deposit.setDepositId(event.getDepositId());

@@ -108,8 +108,8 @@ public class TransactionService {
         fromAccount.setBalance(newFromBalance);
         toAccount.setBalance(newToBalance);
 
-        accountService.updateAccount(fromAccount);
-        accountService.updateAccount(toAccount);
+        accountService.updateAccount(fromAccount, authenticatedUserId);
+        accountService.updateToAccount(toAccount);
 
         Transfer transfer = new Transfer();
         transfer.setFromAccountId(fromAccountId);
@@ -164,7 +164,7 @@ public class TransactionService {
         BigDecimal newBalance = account.getBalance().add(amount);
         account.setBalance(newBalance);
 
-        accountService.updateAccount(account);
+        accountService.updateAccount(account, authenticatedUserId);
 
         Deposit deposit = new Deposit();
         deposit.setAccountId(accountId);
@@ -205,7 +205,7 @@ public class TransactionService {
         BigDecimal newBalance = account.getBalance().subtract(amount);
         account.setBalance(newBalance);
 
-        accountService.updateAccount(account);
+        accountService.updateAccount(account, authenticatedUserId);
 
         Withdrawal withdrawal = new Withdrawal();
         withdrawal.setAccountId(accountId);

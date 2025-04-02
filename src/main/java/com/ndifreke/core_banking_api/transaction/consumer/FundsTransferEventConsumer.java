@@ -13,6 +13,7 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 /**
  * The type Funds transfer event consumer.
@@ -37,7 +38,7 @@ public class FundsTransferEventConsumer {
      * @param event the event
      */
     @KafkaListener(topics = "funds-transfer-events", groupId = "core-banking-group")
-    public void consumeFundsTransferEvent(FundsTransferEvent event) {
+    public void consumeFundsTransferEvent(FundsTransferEvent event, UUID authenticatedUserId) {
         logger.info("Received funds transfer event: {}", event);
 
         Account fromAccount = accountService.findAccountById(event.getFromAccountId()).orElseThrow();
@@ -49,8 +50,8 @@ public class FundsTransferEventConsumer {
         fromAccount.setBalance(newFromBalance);
         toAccount.setBalance(newToBalance);
 
-        accountService.updateAccount(fromAccount);
-        accountService.updateAccount(toAccount);
+        accountService.updateAccount(fromAccount, authenticatedUserId);
+        accountService.updateAccount(toAccount, authenticatedUserId);
 
         Transfer transfer = new Transfer();
         transfer.setTransactionId(event.getTransferId());
