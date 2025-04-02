@@ -1,11 +1,11 @@
 package com.ndifreke.core_banking_api.transaction.consumer;
 
-import com.ndifreke.core_banking_api.account.Account;
+import com.ndifreke.core_banking_api.entity.Account;
 import com.ndifreke.core_banking_api.account.AccountService;
-import com.ndifreke.core_banking_api.notification.NotificationService;
+import com.ndifreke.core_banking_api.service.notification.NotificationService;
 import com.ndifreke.core_banking_api.transaction.events.DepositEvent;
-import com.ndifreke.core_banking_api.transaction.transactionType.Deposit;
-import com.ndifreke.core_banking_api.transaction.transactionType.repository.DepositRepository;
+import com.ndifreke.core_banking_api.entity.transaction.Deposit;
+import com.ndifreke.core_banking_api.repository.DepositRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +14,9 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 
+/**
+ * The type Deposit event consumer.
+ */
 @Component
 public class DepositEventConsumer {
 
@@ -28,6 +31,11 @@ public class DepositEventConsumer {
     @Autowired
     private NotificationService notificationService;
 
+    /**
+     * Consume deposit event.
+     *
+     * @param event the event
+     */
     @KafkaListener(topics = "deposit-events", groupId = "core-banking-group")
     public void consumeDepositEvent(DepositEvent event) {
         logger.info("Received deposit event: {}", event);

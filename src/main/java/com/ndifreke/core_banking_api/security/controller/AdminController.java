@@ -1,8 +1,8 @@
 package com.ndifreke.core_banking_api.security.controller;
 
-import com.ndifreke.core_banking_api.security.entity.UserDto;
-import com.ndifreke.core_banking_api.user.User;
-import com.ndifreke.core_banking_api.user.UserRepository;
+import com.ndifreke.core_banking_api.dto.user.UserDto;
+import com.ndifreke.core_banking_api.entity.User;
+import com.ndifreke.core_banking_api.repository.UserRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,14 +11,27 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * The type Admin controller.
+ */
 @RestController
 public class AdminController {
     private final UserRepository userRepository;
 
+    /**
+     * Instantiates a new Admin controller.
+     *
+     * @param userRepository the user repository
+     */
     public AdminController(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
 
+    /**
+     * Gets admin data.
+     *
+     * @return the admin data
+     */
     @GetMapping("/admin/data")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<UserDto>> getAdminData() {
@@ -29,6 +42,11 @@ public class AdminController {
         return ResponseEntity.ok(userDtos);
     }
 
+    /**
+     * Gets teller data.
+     *
+     * @return the teller data
+     */
     @GetMapping("/teller/data")
     @PreAuthorize("hasAnyRole('ADMIN', 'TELLER')")
     public String getTellerData() {

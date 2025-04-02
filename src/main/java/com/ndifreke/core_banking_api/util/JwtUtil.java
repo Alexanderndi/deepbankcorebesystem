@@ -17,6 +17,9 @@ import java.security.Key;
 import java.util.*;
 import java.util.function.Function;
 
+/**
+ * The type Jwt util.
+ */
 @Component
 public class JwtUtil {
 
@@ -28,15 +31,35 @@ public class JwtUtil {
     @Value("${jwt.expiration}")
     private long jwtExpirationInMs;
 
+    /**
+     * Extract username string.
+     *
+     * @param token the token
+     * @return the string
+     */
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
+    /**
+     * Extract claim t.
+     *
+     * @param <T>            the type parameter
+     * @param token          the token
+     * @param claimsResolver the claims resolver
+     * @return the t
+     */
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
     }
 
+    /**
+     * Extract user id uuid.
+     *
+     * @param token the token
+     * @return the uuid
+     */
     public UUID extractUserId(String token) {
         Claims claims = extractAllClaims(token);
         String userIdString = claims.get("userId", String.class);
@@ -47,6 +70,12 @@ public class JwtUtil {
         }
     }
 
+    /**
+     * Generate token string.
+     *
+     * @param userDetails the user details
+     * @return the string
+     */
     public String generateToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
 
@@ -73,6 +102,13 @@ public class JwtUtil {
                 .compact();
     }
 
+    /**
+     * Is token valid boolean.
+     *
+     * @param token    the token
+     * @param username the username
+     * @return the boolean
+     */
     public boolean isTokenValid(String token, String username) {
         final String extractedUsername = extractUsername(token);
         return (extractedUsername.equals(username) && isTokenExpired(token));
@@ -86,6 +122,12 @@ public class JwtUtil {
         return extractClaim(token, Claims::getExpiration);
     }
 
+    /**
+     * Gets token from request.
+     *
+     * @param request the request
+     * @return the token from request
+     */
     public String getTokenFromRequest(HttpServletRequest request) {
         final String authorizationHeader = request.getHeader("Authorization");
 
@@ -111,6 +153,13 @@ public class JwtUtil {
                 .getBody();
     }
 
+    /**
+     * Validate token boolean.
+     *
+     * @param token       the token
+     * @param userDetails the user details
+     * @return the boolean
+     */
     public boolean validateToken(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
         return (username.equals(userDetails.getUsername()) && isTokenExpired(token));

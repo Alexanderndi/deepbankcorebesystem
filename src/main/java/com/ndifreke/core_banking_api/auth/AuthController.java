@@ -1,9 +1,12 @@
 package com.ndifreke.core_banking_api.auth;
 
-import com.ndifreke.core_banking_api.notification.MailService;
-import com.ndifreke.core_banking_api.security.UserRoleEnum;
+import com.ndifreke.core_banking_api.auth.dto.AuthenticationRequest;
+import com.ndifreke.core_banking_api.auth.dto.RegisterRequest;
+import com.ndifreke.core_banking_api.dto.AuthenticationResponse;
+import com.ndifreke.core_banking_api.service.notification.MailService;
+import com.ndifreke.core_banking_api.entity.enums.user.UserRoleEnum;
 import com.ndifreke.core_banking_api.user.CustomUserDetailsService;
-import com.ndifreke.core_banking_api.user.User;
+import com.ndifreke.core_banking_api.entity.User;
 import com.ndifreke.core_banking_api.util.JwtUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -25,11 +28,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import com.ndifreke.core_banking_api.user.UserRepository;
+import com.ndifreke.core_banking_api.repository.UserRepository;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * The type Auth controller.
+ */
 @RestController
 @RequestMapping("/api/auth")
 @Tag(name = "Authentication", description = "Endpoints for user authentication")
@@ -53,6 +59,13 @@ public class AuthController {
     @Autowired
     private MailService mailService;
 
+    /**
+     * Create authentication token response entity.
+     *
+     * @param authenticationRequest the authentication request
+     * @return the response entity
+     * @throws Exception the exception
+     */
     @Operation(summary = "Authenticate user and generate JWT tokens")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Authentication successful", content = @Content(schema = @Schema(implementation = AuthenticationResponse.class))),
@@ -81,6 +94,12 @@ public class AuthController {
         }
     }
 
+    /**
+     * Register user response entity.
+     *
+     * @param registerRequest the register request
+     * @return the response entity
+     */
     @Operation(summary = "Authenticate user and generate JWT tokens")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Registration successful", content = @Content),
@@ -103,15 +122,5 @@ public class AuthController {
         userRepository.save(user);
 
         return ResponseEntity.ok("User registered successfully");
-    }
-
-    @Getter
-    @Schema(description = "Authentication Response")
-    static class AuthenticationResponse {
-        private final String jwt;
-
-        public AuthenticationResponse(String jwt) {
-            this.jwt = jwt;
-        }
     }
 }

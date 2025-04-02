@@ -1,5 +1,6 @@
 package com.ndifreke.core_banking_api.user;
 
+import com.ndifreke.core_banking_api.entity.User;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -8,6 +9,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.stream.Collectors;
 
+/**
+ * The type Custom user details.
+ */
 @Getter
 public class CustomUserDetails implements UserDetails {
 
@@ -18,6 +22,11 @@ public class CustomUserDetails implements UserDetails {
     private final Collection<? extends GrantedAuthority> authorities;
     private final User user; // Add this line
 
+    /**
+     * Instantiates a new Custom user details.
+     *
+     * @param user the user
+     */
     public CustomUserDetails(User user) {
         this.username = user.getUsername();
         this.password = user.getPassword();

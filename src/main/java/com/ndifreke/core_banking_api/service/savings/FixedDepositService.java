@@ -1,27 +1,36 @@
 package com.ndifreke.core_banking_api.service.savings;
 
-import com.ndifreke.core_banking_api.service.savings.dtos.FixedDepositRequest;
-import com.ndifreke.core_banking_api.service.savings.dtos.FixedDepositResponse;
-import com.ndifreke.core_banking_api.service.savings.enums.FixedDepositStatus;
-import com.ndifreke.core_banking_api.service.savings.repository.FixedDepositRepository;
+import com.ndifreke.core_banking_api.entity.FixedDeposit;
+import com.ndifreke.core_banking_api.dto.savings.FixedDepositRequest;
+import com.ndifreke.core_banking_api.dto.savings.FixedDepositResponse;
+import com.ndifreke.core_banking_api.entity.enums.savings.FixedDepositStatus;
+import com.ndifreke.core_banking_api.repository.FixedDepositRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * The type Fixed deposit service.
+ */
 @Service
 public class FixedDepositService {
 
     @Autowired
     private FixedDepositRepository fixedDepositRepository;
 
+    /**
+     * Create fixed deposit fixed deposit response.
+     *
+     * @param request the request
+     * @param userId  the user id
+     * @return the fixed deposit response
+     */
     public FixedDepositResponse createFixedDeposit(FixedDepositRequest request, UUID userId) {
         validateFixedDepositRequest(request);
 
@@ -37,11 +46,24 @@ public class FixedDepositService {
         return convertToFixedDepositResponse(savedDeposit);
     }
 
+    /**
+     * Gets fixed deposits.
+     *
+     * @param userId the user id
+     * @return the fixed deposits
+     */
     public List<FixedDepositResponse> getFixedDeposits(UUID userId) {
         List<FixedDeposit> fixedDeposits = fixedDepositRepository.findByUserId(userId);
         return fixedDeposits.stream().map(this::convertToFixedDepositResponse).collect(Collectors.toList());
     }
 
+    /**
+     * Gets fixed deposit by id.
+     *
+     * @param depositId the deposit id
+     * @param userId    the user id
+     * @return the fixed deposit by id
+     */
     public FixedDepositResponse getFixedDepositById(UUID depositId, UUID userId) {
         FixedDeposit fixedDeposit = fixedDepositRepository.findById(depositId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Fixed deposit not found"));
@@ -51,6 +73,13 @@ public class FixedDepositService {
         return convertToFixedDepositResponse(fixedDeposit);
     }
 
+    /**
+     * Withdraw fixed deposit fixed deposit response.
+     *
+     * @param depositId the deposit id
+     * @param userId    the user id
+     * @return the fixed deposit response
+     */
     public FixedDepositResponse withdrawFixedDeposit(UUID depositId, UUID userId) {
         FixedDeposit fixedDeposit = fixedDepositRepository.findById(depositId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Fixed deposit not found"));

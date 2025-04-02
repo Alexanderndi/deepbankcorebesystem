@@ -1,11 +1,11 @@
 package com.ndifreke.core_banking_api.transaction.consumer;
 
-import com.ndifreke.core_banking_api.account.Account;
+import com.ndifreke.core_banking_api.entity.Account;
 import com.ndifreke.core_banking_api.account.AccountService;
-import com.ndifreke.core_banking_api.notification.NotificationService;
+import com.ndifreke.core_banking_api.service.notification.NotificationService;
 import com.ndifreke.core_banking_api.transaction.events.WithdrawalEvent;
-import com.ndifreke.core_banking_api.transaction.transactionType.Withdrawal;
-import com.ndifreke.core_banking_api.transaction.transactionType.repository.WithdrawalRepository;
+import com.ndifreke.core_banking_api.entity.transaction.Withdrawal;
+import com.ndifreke.core_banking_api.repository.WithdrawalRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +14,9 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 
+/**
+ * The type Withdrawal event consumer.
+ */
 @Component
 public class WithdrawalEventConsumer {
 
@@ -28,6 +31,11 @@ public class WithdrawalEventConsumer {
     @Autowired
     private NotificationService notificationService;
 
+    /**
+     * Consume withdrawal event.
+     *
+     * @param event the event
+     */
     @KafkaListener(topics = "withdrawal-events", groupId = "core-banking-group")
     public void consumeWithdrawalEvent(WithdrawalEvent event) {
         logger.info("Received withdrawal event: {}", event);

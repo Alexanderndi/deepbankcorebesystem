@@ -1,11 +1,11 @@
 package com.ndifreke.core_banking_api.transaction.consumer;
 
-import com.ndifreke.core_banking_api.account.Account;
+import com.ndifreke.core_banking_api.entity.Account;
 import com.ndifreke.core_banking_api.account.AccountService;
-import com.ndifreke.core_banking_api.notification.NotificationService;
+import com.ndifreke.core_banking_api.service.notification.NotificationService;
 import com.ndifreke.core_banking_api.transaction.events.FundsTransferEvent;
-import com.ndifreke.core_banking_api.transaction.transactionType.Transfer;
-import com.ndifreke.core_banking_api.transaction.transactionType.repository.TransferRepository;
+import com.ndifreke.core_banking_api.entity.transaction.Transfer;
+import com.ndifreke.core_banking_api.repository.TransferRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +14,9 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 
+/**
+ * The type Funds transfer event consumer.
+ */
 @Component
 public class FundsTransferEventConsumer {
 
@@ -28,6 +31,11 @@ public class FundsTransferEventConsumer {
     @Autowired
     private NotificationService notificationService;
 
+    /**
+     * Consume funds transfer event.
+     *
+     * @param event the event
+     */
     @KafkaListener(topics = "funds-transfer-events", groupId = "core-banking-group")
     public void consumeFundsTransferEvent(FundsTransferEvent event) {
         logger.info("Received funds transfer event: {}", event);

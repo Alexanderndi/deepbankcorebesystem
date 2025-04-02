@@ -1,20 +1,19 @@
 package com.ndifreke.core_banking_api.transaction.events.service;
 
-import com.ndifreke.core_banking_api.account.Account;
+import com.ndifreke.core_banking_api.entity.Account;
 import com.ndifreke.core_banking_api.account.AccountService;
-import com.ndifreke.core_banking_api.transaction.TransactionType;
 import com.ndifreke.core_banking_api.transaction.events.DepositEvent;
 import com.ndifreke.core_banking_api.transaction.events.FundsTransferEvent;
 import com.ndifreke.core_banking_api.transaction.events.WithdrawalEvent;
-import com.ndifreke.core_banking_api.transaction.response.DepositResponse;
-import com.ndifreke.core_banking_api.transaction.response.TransferResponse;
-import com.ndifreke.core_banking_api.transaction.response.WithdrawalResponse;
-import com.ndifreke.core_banking_api.transaction.transactionType.Deposit;
-import com.ndifreke.core_banking_api.transaction.transactionType.Transfer;
-import com.ndifreke.core_banking_api.transaction.transactionType.Withdrawal;
-import com.ndifreke.core_banking_api.transaction.transactionType.repository.DepositRepository;
-import com.ndifreke.core_banking_api.transaction.transactionType.repository.TransferRepository;
-import com.ndifreke.core_banking_api.transaction.transactionType.repository.WithdrawalRepository;
+import com.ndifreke.core_banking_api.dto.transaction.DepositResponse;
+import com.ndifreke.core_banking_api.dto.transaction.TransferResponse;
+import com.ndifreke.core_banking_api.dto.transaction.WithdrawalResponse;
+import com.ndifreke.core_banking_api.entity.transaction.Deposit;
+import com.ndifreke.core_banking_api.entity.transaction.Transfer;
+import com.ndifreke.core_banking_api.entity.transaction.Withdrawal;
+import com.ndifreke.core_banking_api.repository.DepositRepository;
+import com.ndifreke.core_banking_api.repository.TransferRepository;
+import com.ndifreke.core_banking_api.repository.WithdrawalRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -23,10 +22,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.UUID;
 
+/**
+ * The type Transaction event service.
+ */
 @Service
 public class TransactionEventService {
 
@@ -46,6 +47,16 @@ public class TransactionEventService {
     private TransferRepository transferRepository;
 
 
+    /**
+     * Transfer funds transfer response.
+     *
+     * @param fromAccountId       the from account id
+     * @param toAccountId         the to account id
+     * @param amount              the amount
+     * @param description         the description
+     * @param authenticatedUserId the authenticated user id
+     * @return the transfer response
+     */
     @Transactional
     public TransferResponse transferFunds(UUID fromAccountId, UUID toAccountId, BigDecimal amount, String description, UUID authenticatedUserId) {
         // ... (validation logic) ...
@@ -94,6 +105,14 @@ public class TransactionEventService {
         return response;
     }
 
+    /**
+     * Deposit funds deposit response.
+     *
+     * @param accountId           the account id
+     * @param amount              the amount
+     * @param authenticatedUserId the authenticated user id
+     * @return the deposit response
+     */
     @Transactional
     public DepositResponse depositFunds(UUID accountId, BigDecimal amount, UUID authenticatedUserId) {
         // ... (validation logic) ...
@@ -126,6 +145,14 @@ public class TransactionEventService {
         return response;
     }
 
+    /**
+     * Withdraw funds withdrawal response.
+     *
+     * @param accountId           the account id
+     * @param amount              the amount
+     * @param authenticatedUserId the authenticated user id
+     * @return the withdrawal response
+     */
     @Transactional
     public WithdrawalResponse withdrawFunds(UUID accountId, BigDecimal amount, UUID authenticatedUserId) {
         // ... (validation logic) ...
