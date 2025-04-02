@@ -11,6 +11,8 @@ import com.ndifreke.core_banking_api.entity.enums.savings.SavingsPlanStatus;
 import com.ndifreke.core_banking_api.repository.SavingsPlanRepository;
 import com.ndifreke.core_banking_api.repository.UserRepository;
 import com.ndifreke.core_banking_api.service.notification.MailService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -27,6 +29,8 @@ import java.util.stream.Collectors;
  */
 @Service
 public class SavingsPlanService {
+
+    private static final Logger logger = LoggerFactory.getLogger(SavingsPlanService.class);
 
     @Autowired
     private SavingsPlanRepository savingsPlanRepository;
@@ -56,6 +60,12 @@ public class SavingsPlanService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User must have a SAVINGS account to create a savings plan");
         }
 
+        // Check if SAVINGS account has sufficient balance for initial deposit
+        BigDecimal initialDeposit = request.getRecurringDepositAmount(); // Assuming this is the initial deposit
+        if (savingsAccount.getBalance().compareTo(initialDeposit) < 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Insufficient balance in SAVINGS account for initial deposit");
+        }
+
         SavingsPlan savingsPlan = new SavingsPlan();
         savingsPlan.setUserId(userId);
         savingsPlan.setPlanName(request.getPlanName());
@@ -69,6 +79,24 @@ public class SavingsPlanService {
         savingsPlan.setStatus(SavingsPlanStatus.ACTIVE);
 
         SavingsPlan savedPlan = savingsPlanRepository.save(savingsPlan);
+
+        // Send email notification for plan creation (optional, assuming initial deposit is zero)
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        // Send emails
+        mailService.sendWithdrawalEmail(
+                user.getEmail(),
+                user.getFirstName(),
+                initialDeposit,
+                savingsAccount.getAccountNumber()
+        );
+        mailService.sendDepositEmail(
+                user.getEmail(),
+                user.getFirstName(),
+                initialDeposit,
+                savingsPlan.getPlanName()
+        );
+
         return convertToSavingsPlanResponse(savedPlan);
     }
 
@@ -120,9 +148,60 @@ public class SavingsPlanService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot deposit to an inactive savings plan");
         }
 
+        // Fetch user's SAVINGS account
+        Account savingsAccount = accountService.getUserSavingsAccount(userId);
+        if (savingsAccount == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User does not have a SAVINGS account");
+        }
+
+        // Check if SAVINGS account has sufficient balance
+        if (savingsAccount.getBalance().compareTo(amount) < 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Insufficient balance in SAVINGS account for deposit");
+        }
+
+        // Withdraw from SAVINGS account
+        try {
+            accountService.withdrawFromAccount(savingsAccount.getAccountId(), amount);
+            logger.info("Successfully withdrew {} from SAVINGS account: accountId={}",
+                    amount, savingsAccount.getAccountId());
+        } catch (IllegalStateException e) {
+            logger.error("Failed to withdraw from SAVINGS account: accountId={}, error={}",
+                    savingsAccount.getAccountId(), e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Failed to debit SAVINGS account: " + e.getMessage());
+        }
+
+        // Refresh savings account to verify balance update
+        Account updatedSavingsAccount = accountService.getUserSavingsAccount(userId);
+        logger.info("SAVINGS account balance after withdrawal: accountId={}, balance={}",
+                updatedSavingsAccount.getAccountId(), updatedSavingsAccount.getBalance());
+
+        // Update savings plan balance
         BigDecimal newBalance = savingsPlan.getCurrentBalance().add(amount);
         savingsPlan.setCurrentBalance(newBalance);
+
+
         savingsPlanRepository.save(savingsPlan);
+
+        // Fetch user details for email
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        // Send withdrawal email (from SAVINGS account)
+        mailService.sendWithdrawalEmail(
+                user.getEmail(),
+                user.getFirstName(),
+                amount,
+                savingsAccount.getAccountNumber()
+        );
+
+        // Send deposit email (to SavingsPlan)
+        mailService.sendDepositEmail(
+                user.getEmail(),
+                user.getFirstName(),
+                amount,
+                savingsPlan.getPlanName()
+        );
+
         return convertToSavingsPlanResponse(savingsPlan);
     }
 
@@ -161,6 +240,17 @@ public class SavingsPlanService {
         BigDecimal newBalance = savingsPlan.getCurrentBalance().subtract(amount);
         savingsPlan.setCurrentBalance(newBalance);
         savingsPlanRepository.save(savingsPlan);
+
+        // Send withdrawal email
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        mailService.sendWithdrawalEmail(
+                user.getEmail(),
+                user.getFirstName(),
+                amount,
+                savingsPlan.getPlanName()
+        );
+
         return convertToSavingsPlanResponse(savingsPlan);
     }
 

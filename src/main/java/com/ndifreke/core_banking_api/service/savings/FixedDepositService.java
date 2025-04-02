@@ -34,6 +34,12 @@ public class FixedDepositService {
     @Autowired
     private AccountService accountService;
 
+    @Autowired
+    private MailService mailService;
+
+    @Autowired
+    private UserRepository userRepository;
+
     /**
      * Create fixed deposit fixed deposit response.
      *
@@ -50,6 +56,12 @@ public class FixedDepositService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User must have a SAVINGS account to create a fixed deposit");
         }
 
+        // Check if SAVINGS account has sufficient balance
+        BigDecimal depositAmount = request.getDepositAmount();
+        if (savingsAccount.getBalance().compareTo(depositAmount) < 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Insufficient balance in SAVINGS account for deposit");
+        }
+
         FixedDeposit fixedDeposit = new FixedDeposit();
         fixedDeposit.setUserId(userId);
         fixedDeposit.setDepositAmount(request.getDepositAmount());
@@ -58,7 +70,28 @@ public class FixedDepositService {
         fixedDeposit.setInterestRate(request.getInterestRate());
         fixedDeposit.setStatus(FixedDepositStatus.ACTIVE);
 
+        // Debit from SAVINGS account
+        accountService.withdrawFromAccount(savingsAccount.getAccountId(), depositAmount);
+
+        // Save the fixed deposit
         FixedDeposit savedDeposit = fixedDepositRepository.save(fixedDeposit);
+        // Fetch user details for email
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        // Send emails
+        mailService.sendWithdrawalEmail(
+                user.getEmail(),
+                user.getFirstName(),
+                depositAmount,
+                savingsAccount.getAccountNumber()
+        );
+        mailService.sendDepositEmail(
+                user.getEmail(),
+                user.getFirstName(),
+                depositAmount,
+                "Fixed Deposit ID: " + savedDeposit.getDepositId()
+        );
         return convertToFixedDepositResponse(savedDeposit);
     }
 
@@ -117,6 +150,18 @@ public class FixedDepositService {
 
         fixedDeposit.setStatus(FixedDepositStatus.CLOSED);
         fixedDepositRepository.save(fixedDeposit);
+
+        // Fetch user details for email
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        // Send withdrawal email
+        mailService.sendDepositEmail(
+                user.getEmail(),
+                user.getFirstName(),
+                withdrawalAmount,
+                savingsAccount.getAccountNumber()
+        );
         return convertToFixedDepositResponse(fixedDeposit);
     }
 

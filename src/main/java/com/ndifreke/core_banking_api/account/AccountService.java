@@ -9,8 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.CachePut;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -47,7 +45,6 @@ public class AccountService {
      * @param authenticatedUserId the authenticated user id
      * @return the account
      */
-    @CachePut(value = "accounts", key = "#result.accountId")
     public Account createAccount(Account account, BigDecimal initialBalance, UUID authenticatedUserId) {
         if (!account.getUserId().equals(authenticatedUserId)) {
             logger.warn("Access denied: Cannot create account for another user. User ID: {}, Authenticated User ID: {}",
@@ -74,7 +71,6 @@ public class AccountService {
      * @param authenticatedUserId the authenticated user id
      * @return the account by id
      */
-    @Cacheable(value = "accounts", key = "#accountId")
     public Account getAccountById(UUID accountId, UUID authenticatedUserId) {
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new NotFoundException("Account not found with ID: " + accountId));
@@ -96,7 +92,6 @@ public class AccountService {
      * @param accountId           the account id
      * @return the account by id
      */
-    @Cacheable(value = "accounts", key = "#accountId")
     public Account getToAccountById(UUID accountId) {
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new NotFoundException("Account not found with ID: " + accountId));
@@ -111,7 +106,6 @@ public class AccountService {
      * @param authenticatedUserId the authenticated user id
      * @return the accounts by user id
      */
-    @Cacheable(value = "accounts", key = "#userId")
     public List<Account> getAccountsByUserId(UUID userId, UUID authenticatedUserId) {
         if (!userId.equals(authenticatedUserId)) {
             logger.warn("Access denied: User {} attempted to access accounts of user {}",
@@ -139,7 +133,6 @@ public class AccountService {
      * @param updatedAccount the updated account
      * @return the account
      */
-    @CachePut(value = "accounts", key = "#updatedAccount.accountId")
     public Account updateAccount(Account updatedAccount, UUID authenticatedUserId) {
         // Check existence and ownership
         Account existingAccount = getAccountById(updatedAccount.getAccountId(), authenticatedUserId);
@@ -153,16 +146,14 @@ public class AccountService {
      * Update account account.
      *
      * @param updatedAccount the updated account
-     * @return the account
      */
-    @CachePut(value = "accounts", key = "#updatedAccount.accountId")
-    public Account updateToAccount(Account updatedAccount) {
+    public void updateToAccount(Account updatedAccount) {
         // Check existence and ownership
         Account existingAccount = getToAccountById(updatedAccount.getAccountId());
 
         // Update fields
         existingAccount.setAccountType(updatedAccount.getAccountType());
-        return accountRepository.save(updatedAccount);
+        accountRepository.save(updatedAccount);
     }
 
     /**
@@ -171,7 +162,6 @@ public class AccountService {
      * @param accountId           the account id
      * @param authenticatedUserId the authenticated user id
      */
-    @CacheEvict(value = "accounts", key = "#accountId")
     public void deleteAccount(UUID accountId, UUID authenticatedUserId) {
         Account account = getAccountById(accountId, authenticatedUserId);
         accountRepository.delete(account);
@@ -211,6 +201,16 @@ public class AccountService {
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new IllegalStateException("Account not found"));
         account.setBalance(account.getBalance().add(amount));
+        accountRepository.save(account);
+    }
+
+    public void withdrawFromAccount(UUID accountId, BigDecimal amount) {
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new IllegalStateException("Account not found"));
+        if (account.getBalance().compareTo(amount) < 0) {
+            throw new IllegalStateException("Insufficient balance");
+        }
+        account.setBalance(account.getBalance().subtract(amount));
         accountRepository.save(account);
     }
 }
