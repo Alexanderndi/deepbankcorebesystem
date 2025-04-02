@@ -2,6 +2,7 @@ package com.ndifreke.core_banking_api.auth;
 
 import com.ndifreke.core_banking_api.auth.dto.AuthenticationRequest;
 import com.ndifreke.core_banking_api.auth.dto.RegisterRequest;
+import com.ndifreke.core_banking_api.dto.AuthenticationResponse;
 import com.ndifreke.core_banking_api.service.notification.MailService;
 import com.ndifreke.core_banking_api.entity.enums.user.UserRoleEnum;
 import com.ndifreke.core_banking_api.user.CustomUserDetailsService;
@@ -121,23 +122,5 @@ public class AuthController {
         userRepository.save(user);
 
         return ResponseEntity.ok("User registered successfully");
-    }
-
-    /**
-     * The type Authentication response.
-     */
-    @Getter
-    @Schema(description = "Authentication Response")
-    static class AuthenticationResponse {
-        private final String jwt;
-
-        /**
-         * Instantiates a new Authentication response.
-         *
-         * @param jwt the jwt
-         */
-        public AuthenticationResponse(String jwt) {
-            this.jwt = jwt;
-        }
     }
 }
