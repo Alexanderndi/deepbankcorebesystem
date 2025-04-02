@@ -63,7 +63,7 @@ The application follows a layered architecture:
 2.  **Clone the Repository:**
 
     ```bash
-    git clone <repository_url>
+    git clone https://github.com/Alexanderndi/deepbankcorebesystem
     cd core-banking-api
     ```
 
