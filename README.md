@@ -139,7 +139,3 @@ The application follows a layered architecture:
 ## Contributing
 
 * Feel free to contribute to this project by submitting pull requests.
-
-## License
-
-* This project is licensed under the [License Name] - see the [LICENSE.md](LICENSE.md) file for details.
