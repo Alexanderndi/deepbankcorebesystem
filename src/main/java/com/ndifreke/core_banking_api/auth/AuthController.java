@@ -1,9 +1,11 @@
 package com.ndifreke.core_banking_api.auth;
 
-import com.ndifreke.core_banking_api.notification.MailService;
-import com.ndifreke.core_banking_api.security.UserRoleEnum;
+import com.ndifreke.core_banking_api.auth.dto.AuthenticationRequest;
+import com.ndifreke.core_banking_api.auth.dto.RegisterRequest;
+import com.ndifreke.core_banking_api.service.notification.MailService;
+import com.ndifreke.core_banking_api.entity.enums.user.UserRoleEnum;
 import com.ndifreke.core_banking_api.user.CustomUserDetailsService;
-import com.ndifreke.core_banking_api.user.User;
+import com.ndifreke.core_banking_api.entity.User;
 import com.ndifreke.core_banking_api.util.JwtUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -25,7 +27,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import com.ndifreke.core_banking_api.user.UserRepository;
+import com.ndifreke.core_banking_api.repository.UserRepository;
 
 import java.util.List;
 import java.util.stream.Collectors;

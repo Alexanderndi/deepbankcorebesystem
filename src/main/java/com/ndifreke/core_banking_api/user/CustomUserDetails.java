@@ -1,5 +1,6 @@
 package com.ndifreke.core_banking_api.user;
 
+import com.ndifreke.core_banking_api.entity.User;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;

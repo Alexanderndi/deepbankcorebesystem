@@ -1,4 +1,6 @@
 package com.ndifreke.core_banking_api.account;
+import com.ndifreke.core_banking_api.entity.Account;
+import com.ndifreke.core_banking_api.repository.AccountRepository;
 import com.ndifreke.core_banking_api.util.JwtUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

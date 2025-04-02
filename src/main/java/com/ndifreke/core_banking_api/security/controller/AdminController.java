@@ -1,8 +1,8 @@
 package com.ndifreke.core_banking_api.security.controller;
 
-import com.ndifreke.core_banking_api.security.entity.UserDto;
-import com.ndifreke.core_banking_api.user.User;
-import com.ndifreke.core_banking_api.user.UserRepository;
+import com.ndifreke.core_banking_api.dto.user.UserDto;
+import com.ndifreke.core_banking_api.entity.User;
+import com.ndifreke.core_banking_api.repository.UserRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;

@@ -1,5 +1,7 @@
 package com.ndifreke.core_banking_api.user;
 
+import com.ndifreke.core_banking_api.entity.User;
+import com.ndifreke.core_banking_api.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;

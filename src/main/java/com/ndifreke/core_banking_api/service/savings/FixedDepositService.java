@@ -1,17 +1,16 @@
 package com.ndifreke.core_banking_api.service.savings;
 
-import com.ndifreke.core_banking_api.service.savings.dtos.FixedDepositRequest;
-import com.ndifreke.core_banking_api.service.savings.dtos.FixedDepositResponse;
-import com.ndifreke.core_banking_api.service.savings.enums.FixedDepositStatus;
-import com.ndifreke.core_banking_api.service.savings.repository.FixedDepositRepository;
+import com.ndifreke.core_banking_api.entity.FixedDeposit;
+import com.ndifreke.core_banking_api.dto.savings.FixedDepositRequest;
+import com.ndifreke.core_banking_api.dto.savings.FixedDepositResponse;
+import com.ndifreke.core_banking_api.entity.enums.savings.FixedDepositStatus;
+import com.ndifreke.core_banking_api.repository.FixedDepositRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;

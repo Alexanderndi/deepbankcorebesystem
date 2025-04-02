@@ -1,11 +1,11 @@
 package com.ndifreke.core_banking_api.transaction.consumer;
 
-import com.ndifreke.core_banking_api.account.Account;
+import com.ndifreke.core_banking_api.entity.Account;
 import com.ndifreke.core_banking_api.account.AccountService;
-import com.ndifreke.core_banking_api.notification.NotificationService;
+import com.ndifreke.core_banking_api.service.notification.NotificationService;
 import com.ndifreke.core_banking_api.transaction.events.FundsTransferEvent;
-import com.ndifreke.core_banking_api.transaction.transactionType.Transfer;
-import com.ndifreke.core_banking_api.transaction.transactionType.repository.TransferRepository;
+import com.ndifreke.core_banking_api.entity.transaction.Transfer;
+import com.ndifreke.core_banking_api.repository.TransferRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
