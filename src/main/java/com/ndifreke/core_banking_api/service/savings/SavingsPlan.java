@@ -8,6 +8,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
+/**
+ * The type Savings plan.
+ */
 @Entity
 @Data
 @Table(name = "savings_plans")

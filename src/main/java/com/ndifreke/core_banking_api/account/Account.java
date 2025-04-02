@@ -10,6 +10,9 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+/**
+ * The type Account.
+ */
 @Entity
 @Getter
 @Setter

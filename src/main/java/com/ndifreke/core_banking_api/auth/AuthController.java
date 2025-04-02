@@ -30,6 +30,9 @@ import com.ndifreke.core_banking_api.user.UserRepository;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * The type Auth controller.
+ */
 @RestController
 @RequestMapping("/api/auth")
 @Tag(name = "Authentication", description = "Endpoints for user authentication")
@@ -53,6 +56,13 @@ public class AuthController {
     @Autowired
     private MailService mailService;
 
+    /**
+     * Create authentication token response entity.
+     *
+     * @param authenticationRequest the authentication request
+     * @return the response entity
+     * @throws Exception the exception
+     */
     @Operation(summary = "Authenticate user and generate JWT tokens")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Authentication successful", content = @Content(schema = @Schema(implementation = AuthenticationResponse.class))),
@@ -81,6 +91,12 @@ public class AuthController {
         }
     }
 
+    /**
+     * Register user response entity.
+     *
+     * @param registerRequest the register request
+     * @return the response entity
+     */
     @Operation(summary = "Authenticate user and generate JWT tokens")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Registration successful", content = @Content),
@@ -105,11 +121,19 @@ public class AuthController {
         return ResponseEntity.ok("User registered successfully");
     }
 
+    /**
+     * The type Authentication response.
+     */
     @Getter
     @Schema(description = "Authentication Response")
     static class AuthenticationResponse {
         private final String jwt;
 
+        /**
+         * Instantiates a new Authentication response.
+         *
+         * @param jwt the jwt
+         */
         public AuthenticationResponse(String jwt) {
             this.jwt = jwt;
         }

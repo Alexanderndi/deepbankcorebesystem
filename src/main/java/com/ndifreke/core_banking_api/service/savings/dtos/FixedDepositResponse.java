@@ -7,6 +7,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
+/**
+ * The type Fixed deposit response.
+ */
 @Data
 @Schema(description = "Response object for fixed deposit details")
 public class FixedDepositResponse {

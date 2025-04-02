@@ -14,6 +14,9 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 
+/**
+ * The type Funds transfer event consumer.
+ */
 @Component
 public class FundsTransferEventConsumer {
 
@@ -28,6 +31,11 @@ public class FundsTransferEventConsumer {
     @Autowired
     private NotificationService notificationService;
 
+    /**
+     * Consume funds transfer event.
+     *
+     * @param event the event
+     */
     @KafkaListener(topics = "funds-transfer-events", groupId = "core-banking-group")
     public void consumeFundsTransferEvent(FundsTransferEvent event) {
         logger.info("Received funds transfer event: {}", event);

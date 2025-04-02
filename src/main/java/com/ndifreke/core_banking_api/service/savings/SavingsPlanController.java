@@ -21,6 +21,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * The type Savings plan controller.
+ */
 @RestController
 @RequestMapping("/api/savings-plans")
 @Tag(name = "Savings Plans", description = "Endpoints for managing savings plans")
@@ -32,6 +35,13 @@ public class SavingsPlanController {
     @Autowired
     private JwtUtil jwtUtil;
 
+    /**
+     * Create savings plan response entity.
+     *
+     * @param savingsPlanRequest the savings plan request
+     * @param request            the request
+     * @return the response entity
+     */
     @Operation(summary = "Create a new savings plan")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Savings plan created successfully", content = @Content(schema = @Schema(implementation = SavingsPlanResponse.class))),
@@ -48,6 +58,12 @@ public class SavingsPlanController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    /**
+     * Gets savings plans.
+     *
+     * @param request the request
+     * @return the savings plans
+     */
     @Operation(summary = "Get all savings plans for the authenticated user")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Savings plans retrieved successfully", content = @Content(schema = @Schema(implementation = SavingsPlanResponse.class))),
@@ -61,6 +77,13 @@ public class SavingsPlanController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Gets savings plan by id.
+     *
+     * @param planId  the plan id
+     * @param request the request
+     * @return the savings plan by id
+     */
     @Operation(summary = "Get a savings plan by ID")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Savings plan retrieved successfully", content = @Content(schema = @Schema(implementation = SavingsPlanResponse.class))),
@@ -77,6 +100,14 @@ public class SavingsPlanController {
         return response == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(response);
     }
 
+    /**
+     * Deposit to savings plan response entity.
+     *
+     * @param planId         the plan id
+     * @param depositRequest the deposit request
+     * @param request        the request
+     * @return the response entity
+     */
     @Operation(summary = "Deposit funds into a savings plan")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Funds deposited successfully", content = @Content(schema = @Schema(implementation = SavingsPlanResponse.class))),
@@ -95,6 +126,14 @@ public class SavingsPlanController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Withdraw from savings plan response entity.
+     *
+     * @param planId            the plan id
+     * @param withdrawalRequest the withdrawal request
+     * @param request           the request
+     * @return the response entity
+     */
     @Operation(summary = "Withdraw funds from a savings plan")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Funds withdrawn successfully", content = @Content(schema = @Schema(implementation = SavingsPlanResponse.class))),

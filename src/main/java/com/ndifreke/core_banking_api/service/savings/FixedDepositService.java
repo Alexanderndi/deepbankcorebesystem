@@ -16,12 +16,22 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * The type Fixed deposit service.
+ */
 @Service
 public class FixedDepositService {
 
     @Autowired
     private FixedDepositRepository fixedDepositRepository;
 
+    /**
+     * Create fixed deposit fixed deposit response.
+     *
+     * @param request the request
+     * @param userId  the user id
+     * @return the fixed deposit response
+     */
     public FixedDepositResponse createFixedDeposit(FixedDepositRequest request, UUID userId) {
         validateFixedDepositRequest(request);
 
@@ -37,11 +47,24 @@ public class FixedDepositService {
         return convertToFixedDepositResponse(savedDeposit);
     }
 
+    /**
+     * Gets fixed deposits.
+     *
+     * @param userId the user id
+     * @return the fixed deposits
+     */
     public List<FixedDepositResponse> getFixedDeposits(UUID userId) {
         List<FixedDeposit> fixedDeposits = fixedDepositRepository.findByUserId(userId);
         return fixedDeposits.stream().map(this::convertToFixedDepositResponse).collect(Collectors.toList());
     }
 
+    /**
+     * Gets fixed deposit by id.
+     *
+     * @param depositId the deposit id
+     * @param userId    the user id
+     * @return the fixed deposit by id
+     */
     public FixedDepositResponse getFixedDepositById(UUID depositId, UUID userId) {
         FixedDeposit fixedDeposit = fixedDepositRepository.findById(depositId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Fixed deposit not found"));
@@ -51,6 +74,13 @@ public class FixedDepositService {
         return convertToFixedDepositResponse(fixedDeposit);
     }
 
+    /**
+     * Withdraw fixed deposit fixed deposit response.
+     *
+     * @param depositId the deposit id
+     * @param userId    the user id
+     * @return the fixed deposit response
+     */
     public FixedDepositResponse withdrawFixedDeposit(UUID depositId, UUID userId) {
         FixedDeposit fixedDeposit = fixedDepositRepository.findById(depositId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Fixed deposit not found"));

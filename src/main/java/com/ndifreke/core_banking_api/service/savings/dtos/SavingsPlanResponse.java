@@ -7,6 +7,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
+/**
+ * The type Savings plan response.
+ */
 @Data
 @Schema(description = "Response object for savings plan details")
 public class SavingsPlanResponse {

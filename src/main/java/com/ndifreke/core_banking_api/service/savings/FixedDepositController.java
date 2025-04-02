@@ -19,6 +19,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * The type Fixed deposit controller.
+ */
 @RestController
 @RequestMapping("/api/fixed-deposits")
 @Tag(name = "Fixed Deposits", description = "Endpoints for managing fixed deposits")
@@ -30,6 +33,13 @@ public class FixedDepositController {
     @Autowired
     private JwtUtil jwtUtil;
 
+    /**
+     * Create fixed deposit response entity.
+     *
+     * @param fixedDepositRequest the fixed deposit request
+     * @param request             the request
+     * @return the response entity
+     */
     @Operation(summary = "Create a new fixed deposit")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Fixed deposit created successfully", content = @Content(schema = @Schema(implementation = FixedDepositResponse.class))),
@@ -46,6 +56,12 @@ public class FixedDepositController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    /**
+     * Gets fixed deposits.
+     *
+     * @param request the request
+     * @return the fixed deposits
+     */
     @Operation(summary = "Get all fixed deposits for the authenticated user")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Fixed deposits retrieved successfully", content = @Content(schema = @Schema(implementation = FixedDepositResponse.class))),
@@ -59,6 +75,13 @@ public class FixedDepositController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Gets fixed deposit by id.
+     *
+     * @param depositId the deposit id
+     * @param request   the request
+     * @return the fixed deposit by id
+     */
     @Operation(summary = "Get a fixed deposit by ID")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Fixed deposit retrieved successfully", content = @Content(schema = @Schema(implementation = FixedDepositResponse.class))),
@@ -75,6 +98,13 @@ public class FixedDepositController {
         return response == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(response);
     }
 
+    /**
+     * Withdraw fixed deposit response entity.
+     *
+     * @param depositId the deposit id
+     * @param request   the request
+     * @return the response entity
+     */
     @Operation(summary = "Withdraw funds from a fixed deposit")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Funds withdrawn successfully", content = @Content(schema = @Schema(implementation = FixedDepositResponse.class))),

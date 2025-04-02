@@ -13,6 +13,9 @@ import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.UUID;
 
+/**
+ * The type Transfer.
+ */
 @Entity
 @Getter
 @Setter
@@ -48,6 +51,9 @@ public class Transfer {
     @Enumerated(EnumType.STRING)
     private TransactionType transactionType; // e.g., Transfer, Deposit, Withdrawal
 
+    /**
+     * Pre persist.
+     */
     @PrePersist
     public void prePersist() {
         this.timestamp = LocalDateTime.now();

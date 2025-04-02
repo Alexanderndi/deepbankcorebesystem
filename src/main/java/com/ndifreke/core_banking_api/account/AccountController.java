@@ -1,6 +1,6 @@
 package com.ndifreke.core_banking_api.account;
 
-import com.ndifreke.core_banking_api.cache.config.CacheConfig;
+import com.ndifreke.core_banking_api.config.CacheConfig;
 import com.ndifreke.core_banking_api.util.JwtUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -19,6 +19,9 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * The type Account controller.
+ */
 @RestController
 @RequestMapping("/api/accounts")
 @Tag(name = "Accounts", description = "Endpoints for managing user accounts")
@@ -33,6 +36,13 @@ public class AccountController {
     @Autowired
     private CacheConfig cacheConfig;
 
+    /**
+     * Create account response entity.
+     *
+     * @param accountRequest the account request
+     * @param request        the request
+     * @return the response entity
+     */
     @Operation(summary = "Create a new account")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Account created successfully", content = @Content),
@@ -55,6 +65,13 @@ public class AccountController {
         }
     }
 
+    /**
+     * Gets account by id.
+     *
+     * @param accountId the account id
+     * @param request   the request
+     * @return the account by id
+     */
     @Operation(summary = "Get account details by ID")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Account details retrieved successfully", content = @Content),
@@ -73,6 +90,13 @@ public class AccountController {
         }
     }
 
+    /**
+     * Gets accounts by user id.
+     *
+     * @param userId  the user id
+     * @param request the request
+     * @return the accounts by user id
+     */
     @Operation(summary = "Update account details")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Account updated successfully", content = @Content),
@@ -92,6 +116,13 @@ public class AccountController {
         }
     }
 
+    /**
+     * Gets account balance.
+     *
+     * @param accountId the account id
+     * @param request   the request
+     * @return the account balance
+     */
     @Operation(summary = "Delete an account")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Account deleted successfully"),
@@ -110,6 +141,14 @@ public class AccountController {
         }
     }
 
+    /**
+     * Update account response entity.
+     *
+     * @param accountId      the account id
+     * @param updatedAccount the updated account
+     * @param request        the request
+     * @return the response entity
+     */
     @PutMapping("/{accountId}")
     public ResponseEntity<Account> updateAccount(@PathVariable UUID accountId, @RequestBody Account updatedAccount, HttpServletRequest request) {
         UUID authenticatedUserId = jwtUtil.extractUserId(jwtUtil.getTokenFromRequest(request));
@@ -126,6 +165,13 @@ public class AccountController {
         }
     }
 
+    /**
+     * Delete account response entity.
+     *
+     * @param accountId the account id
+     * @param request   the request
+     * @return the response entity
+     */
     @DeleteMapping("/{accountId}")
     public ResponseEntity<Void> deleteAccount(@PathVariable UUID accountId, HttpServletRequest request) {
         UUID authenticatedUserId = jwtUtil.extractUserId(jwtUtil.getTokenFromRequest(request));
@@ -137,11 +183,17 @@ public class AccountController {
         }
     }
 
+    /**
+     * Gets cache data.
+     */
     @GetMapping("/cacheData")
     public void getCacheData() {
         cacheConfig.printCacheContents("accounts");
     }
 
+    /**
+     * The type Account request.
+     */
     @Schema(description = "Account creation/update request object")
     static class AccountRequest {
         private UUID userId;
@@ -149,26 +201,56 @@ public class AccountController {
         private String accountType;
         private BigDecimal initialBalance;
 
+        /**
+         * Gets user id.
+         *
+         * @return the user id
+         */
         public UUID getUserId() {
             return userId;
         }
 
+        /**
+         * Sets user id.
+         *
+         * @param userId the user id
+         */
         public void setUserId(UUID userId) {
             this.userId = userId;
         }
 
+        /**
+         * Gets account type.
+         *
+         * @return the account type
+         */
         public String getAccountType() {
             return accountType;
         }
 
+        /**
+         * Sets account type.
+         *
+         * @param accountType the account type
+         */
         public void setAccountType(String accountType) {
             this.accountType = accountType;
         }
 
+        /**
+         * Gets initial balance.
+         *
+         * @return the initial balance
+         */
         public BigDecimal getInitialBalance() {
             return initialBalance;
         }
 
+        /**
+         * Sets initial balance.
+         *
+         * @param initialBalance the initial balance
+         */
         public void setInitialBalance(BigDecimal initialBalance) {
             this.initialBalance = initialBalance;
         }

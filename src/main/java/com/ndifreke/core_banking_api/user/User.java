@@ -14,6 +14,9 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * The type User.
+ */
 @Entity
 @Getter
 @Setter
@@ -48,6 +51,11 @@ public class User {
     @Column(name = "role")
     private List<UserRoleEnum> roles;
 
+    /**
+     * Gets authorities.
+     *
+     * @return the authorities
+     */
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return roles.stream()
                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))

@@ -6,6 +6,9 @@ import lombok.Setter;
 
 import java.util.List;
 
+/**
+ * The type User dto.
+ */
 @Getter
 @Setter
 @Data

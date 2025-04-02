@@ -19,6 +19,9 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
+/**
+ * The type Security config.
+ */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -29,6 +32,11 @@ public class SecurityConfig {
     @Autowired
     private JwtRequestFilter jwtRequestFilter;
 
+    /**
+     * Authentication provider authentication provider.
+     *
+     * @return the authentication provider
+     */
     @Bean
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
@@ -37,6 +45,13 @@ public class SecurityConfig {
         return authProvider;
     }
 
+    /**
+     * Security filter chain security filter chain.
+     *
+     * @param http the http
+     * @return the security filter chain
+     * @throws Exception the exception
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -54,11 +69,23 @@ public class SecurityConfig {
         return http.build();
     }
 
+    /**
+     * Authentication manager authentication manager.
+     *
+     * @param config the config
+     * @return the authentication manager
+     * @throws Exception the exception
+     */
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 
+    /**
+     * Password encoder b crypt password encoder.
+     *
+     * @return the b crypt password encoder
+     */
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();

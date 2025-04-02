@@ -17,12 +17,22 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * The type Savings plan service.
+ */
 @Service
 public class SavingsPlanService {
 
     @Autowired
     private SavingsPlanRepository savingsPlanRepository;
 
+    /**
+     * Create savings plan savings plan response.
+     *
+     * @param request the request
+     * @param userId  the user id
+     * @return the savings plan response
+     */
     public SavingsPlanResponse createSavingsPlan(SavingsPlanRequest request, UUID userId) {
         validateSavingsPlanRequest(request);
 
@@ -42,11 +52,24 @@ public class SavingsPlanService {
         return convertToSavingsPlanResponse(savedPlan);
     }
 
+    /**
+     * Gets savings plans.
+     *
+     * @param userId the user id
+     * @return the savings plans
+     */
     public List<SavingsPlanResponse> getSavingsPlans(UUID userId) {
         List<SavingsPlan> savingsPlans = savingsPlanRepository.findByUserId(userId);
         return savingsPlans.stream().map(this::convertToSavingsPlanResponse).collect(Collectors.toList());
     }
 
+    /**
+     * Gets savings plan by id.
+     *
+     * @param planId the plan id
+     * @param userId the user id
+     * @return the savings plan by id
+     */
     public SavingsPlanResponse getSavingsPlanById(UUID planId, UUID userId) {
         SavingsPlan savingsPlan = savingsPlanRepository.findById(planId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Savings plan not found"));
@@ -56,6 +79,14 @@ public class SavingsPlanService {
         return convertToSavingsPlanResponse(savingsPlan);
     }
 
+    /**
+     * Deposit to savings plan savings plan response.
+     *
+     * @param planId the plan id
+     * @param amount the amount
+     * @param userId the user id
+     * @return the savings plan response
+     */
     public SavingsPlanResponse depositToSavingsPlan(UUID planId, BigDecimal amount, UUID userId) {
         SavingsPlan savingsPlan = savingsPlanRepository.findById(planId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Savings plan not found"));
@@ -75,6 +106,14 @@ public class SavingsPlanService {
         return convertToSavingsPlanResponse(savingsPlan);
     }
 
+    /**
+     * Withdraw from savings plan savings plan response.
+     *
+     * @param planId the plan id
+     * @param amount the amount
+     * @param userId the user id
+     * @return the savings plan response
+     */
     public SavingsPlanResponse withdrawFromSavingsPlan(UUID planId, BigDecimal amount, UUID userId) {
         SavingsPlan savingsPlan = savingsPlanRepository.findById(planId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Savings plan not found"));

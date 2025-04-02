@@ -14,6 +14,9 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 
+/**
+ * The type Withdrawal event consumer.
+ */
 @Component
 public class WithdrawalEventConsumer {
 
@@ -28,6 +31,11 @@ public class WithdrawalEventConsumer {
     @Autowired
     private NotificationService notificationService;
 
+    /**
+     * Consume withdrawal event.
+     *
+     * @param event the event
+     */
     @KafkaListener(topics = "withdrawal-events", groupId = "core-banking-group")
     public void consumeWithdrawalEvent(WithdrawalEvent event) {
         logger.info("Received withdrawal event: {}", event);

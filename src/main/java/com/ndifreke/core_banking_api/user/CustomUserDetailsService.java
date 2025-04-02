@@ -11,6 +11,9 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * The type Custom user details service.
+ */
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
 

@@ -8,11 +8,19 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 
+/**
+ * The type Mail service.
+ */
 @Service
 public class MailService {
 
     private final JavaMailSender mailSender;
 
+    /**
+     * Instantiates a new Mail service.
+     *
+     * @param mailSender the mail sender
+     */
     @Autowired
     public MailService(JavaMailSender mailSender) {
         this.mailSender = mailSender;
@@ -20,6 +28,10 @@ public class MailService {
 
     /**
      * Generic method to send an email with HTML content.
+     *
+     * @param to      the to
+     * @param subject the subject
+     * @param text    the text
      */
     public void sendTransactionEmail(String to, String subject, String text) {
         try {
@@ -39,6 +51,13 @@ public class MailService {
 
     /**
      * Email for when funds are debited from the sender's account in a transfer.
+     *
+     * @param to                the to
+     * @param firstName         the first name
+     * @param amount            the amount
+     * @param fromAccountNumber the from account number
+     * @param toAccountNumber   the to account number
+     * @param description       the description
      */
     public void sendTransferDebitEmail(String to, String firstName, BigDecimal amount,
                                        String fromAccountNumber, String toAccountNumber, String description) {
@@ -56,6 +75,13 @@ public class MailService {
 
     /**
      * Email for when funds are credited to the receiver's account in a transfer.
+     *
+     * @param to                the to
+     * @param firstName         the first name
+     * @param amount            the amount
+     * @param toAccountNumber   the to account number
+     * @param fromAccountNumber the from account number
+     * @param description       the description
      */
     public void sendTransferCreditEmail(String to, String firstName, BigDecimal amount,
                                         String toAccountNumber, String fromAccountNumber, String description) {
@@ -73,6 +99,11 @@ public class MailService {
 
     /**
      * Email for a successful deposit.
+     *
+     * @param to            the to
+     * @param firstName     the first name
+     * @param amount        the amount
+     * @param accountNumber the account number
      */
     public void sendDepositEmail(String to, String firstName, BigDecimal amount, String accountNumber) {
         String subject = "CBA CREDIT Transaction Notification\"";
@@ -88,6 +119,11 @@ public class MailService {
 
     /**
      * Email for a successful withdrawal.
+     *
+     * @param to            the to
+     * @param firstName     the first name
+     * @param amount        the amount
+     * @param accountNumber the account number
      */
     public void sendWithdrawalEmail(String to, String firstName, BigDecimal amount, String accountNumber) {
         String subject = "CBA CREDIT Transaction Notification\"";
@@ -103,6 +139,10 @@ public class MailService {
 
     /**
      * Email for fraud alerts, specifying the rule broken and optionally the amount.
+     *
+     * @param to     the to
+     * @param reason the reason
+     * @param amount the amount
      */
     public void sendFraudAlertEmail(String to, String reason, BigDecimal amount) {
         String subject = "Fraud Alert: Transaction Blocked";
@@ -131,6 +171,10 @@ public class MailService {
 
     /**
      * Email for successful login (unchanged from original).
+     *
+     * @param to        the to
+     * @param firstName the first name
+     * @param lastName  the last name
      */
     public void sendLoginEmail(String to, String firstName, String lastName) {
         try {

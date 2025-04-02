@@ -27,6 +27,9 @@ import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.UUID;
 
+/**
+ * The type Transaction event service.
+ */
 @Service
 public class TransactionEventService {
 
@@ -46,6 +49,16 @@ public class TransactionEventService {
     private TransferRepository transferRepository;
 
 
+    /**
+     * Transfer funds transfer response.
+     *
+     * @param fromAccountId       the from account id
+     * @param toAccountId         the to account id
+     * @param amount              the amount
+     * @param description         the description
+     * @param authenticatedUserId the authenticated user id
+     * @return the transfer response
+     */
     @Transactional
     public TransferResponse transferFunds(UUID fromAccountId, UUID toAccountId, BigDecimal amount, String description, UUID authenticatedUserId) {
         // ... (validation logic) ...
@@ -94,6 +107,14 @@ public class TransactionEventService {
         return response;
     }
 
+    /**
+     * Deposit funds deposit response.
+     *
+     * @param accountId           the account id
+     * @param amount              the amount
+     * @param authenticatedUserId the authenticated user id
+     * @return the deposit response
+     */
     @Transactional
     public DepositResponse depositFunds(UUID accountId, BigDecimal amount, UUID authenticatedUserId) {
         // ... (validation logic) ...
@@ -126,6 +147,14 @@ public class TransactionEventService {
         return response;
     }
 
+    /**
+     * Withdraw funds withdrawal response.
+     *
+     * @param accountId           the account id
+     * @param amount              the amount
+     * @param authenticatedUserId the authenticated user id
+     * @return the withdrawal response
+     */
     @Transactional
     public WithdrawalResponse withdrawFunds(UUID accountId, BigDecimal amount, UUID authenticatedUserId) {
         // ... (validation logic) ...

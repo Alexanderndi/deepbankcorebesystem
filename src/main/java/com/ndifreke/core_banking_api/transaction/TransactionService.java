@@ -29,6 +29,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * The type Transaction service.
+ */
 @Service
 public class TransactionService {
 
@@ -55,6 +58,16 @@ public class TransactionService {
     @Autowired
     private UserRepository userRepository;
 
+    /**
+     * Transfer funds transfer response.
+     *
+     * @param fromAccountId       the from account id
+     * @param toAccountId         the to account id
+     * @param amount              the amount
+     * @param description         the description
+     * @param authenticatedUserId the authenticated user id
+     * @return the transfer response
+     */
     @Transactional
     public TransferResponse transferFunds(UUID fromAccountId, UUID toAccountId, BigDecimal amount, String description, UUID authenticatedUserId) {
         validateAmount(amount, "transfer");
@@ -131,6 +144,14 @@ public class TransactionService {
         return convertToTransferResponse(transfer);
     }
 
+    /**
+     * Deposit funds deposit response.
+     *
+     * @param accountId           the account id
+     * @param amount              the amount
+     * @param authenticatedUserId the authenticated user id
+     * @return the deposit response
+     */
     @Transactional
     public DepositResponse depositFunds(UUID accountId, BigDecimal amount, UUID authenticatedUserId) {
         validateAmount(amount, "deposit");
@@ -160,6 +181,14 @@ public class TransactionService {
         return convertToDepositResponse(deposit);
     }
 
+    /**
+     * Withdraw funds withdrawal response.
+     *
+     * @param accountId           the account id
+     * @param amount              the amount
+     * @param authenticatedUserId the authenticated user id
+     * @return the withdrawal response
+     */
     @Transactional
     public WithdrawalResponse withdrawFunds(UUID accountId, BigDecimal amount, UUID authenticatedUserId) {
         validateAmount(amount, "withdrawal");
@@ -192,6 +221,13 @@ public class TransactionService {
         return convertToWithdrawalResponse(withdrawal);
     }
 
+    /**
+     * Gets transaction history.
+     *
+     * @param accountId           the account id
+     * @param authenticatedUserId the authenticated user id
+     * @return the transaction history
+     */
     public TransactionHistoryResponse getTransactionHistory(UUID accountId, UUID authenticatedUserId) {
         accountService.validateAccountOwnership(accountId, authenticatedUserId);
 
@@ -244,6 +280,12 @@ public class TransactionService {
         return TransactionService.getTransferResponse(transaction);
     }
 
+    /**
+     * Gets transfer response.
+     *
+     * @param transaction the transaction
+     * @return the transfer response
+     */
     static TransferResponse getTransferResponse(Transfer transaction) {
         TransferResponse response = new TransferResponse();
         response.setTransactionId(transaction.getTransactionId());
@@ -260,6 +302,12 @@ public class TransactionService {
         return TransactionService.getDepositResponse(deposit);
     }
 
+    /**
+     * Gets deposit response.
+     *
+     * @param deposit the deposit
+     * @return the deposit response
+     */
     static DepositResponse getDepositResponse(Deposit deposit) {
         DepositResponse response = new DepositResponse();
         response.setDepositId(deposit.getDepositId());
@@ -274,6 +322,12 @@ public class TransactionService {
         return TransactionService.getWithdrawalResponse(withdrawal);
     }
 
+    /**
+     * Gets withdrawal response.
+     *
+     * @param withdrawal the withdrawal
+     * @return the withdrawal response
+     */
     static WithdrawalResponse getWithdrawalResponse(Withdrawal withdrawal) {
         WithdrawalResponse response = new WithdrawalResponse();
         response.setWithdrawalId(withdrawal.getWithdrawalId());

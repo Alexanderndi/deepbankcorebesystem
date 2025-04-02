@@ -1,5 +1,19 @@
 package com.ndifreke.core_banking_api.service.savings.enums;
 
+/**
+ * The enum Fixed deposit status.
+ */
 public enum FixedDepositStatus {
-    ACTIVE, MATURED, CLOSED
+    /**
+     * Active fixed deposit status.
+     */
+    ACTIVE,
+    /**
+     * Matured fixed deposit status.
+     */
+    MATURED,
+    /**
+     * Closed fixed deposit status.
+     */
+    CLOSED
 }

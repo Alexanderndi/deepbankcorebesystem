@@ -6,6 +6,9 @@ import jakarta.validation.constraints.Positive;
 import lombok.Data;
 import java.math.BigDecimal;
 
+/**
+ * The type Savings plan deposit request.
+ */
 @Data
 @Schema(description = "Request object for depositing funds into a savings plan")
 public class SavingsPlanDepositRequest {

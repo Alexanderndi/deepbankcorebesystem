@@ -1,18 +1,15 @@
-package com.ndifreke.core_banking_api.cache.config;
+package com.ndifreke.core_banking_api.config;
 
-import org.springframework.boot.autoconfigure.cache.RedisCacheManagerBuilderCustomizer;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.redis.cache.RedisCacheConfiguration;
-import org.springframework.data.redis.cache.RedisCacheManager;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
 
-import java.time.Duration;
 import java.util.Objects;
 
+/**
+ * The type Cache config.
+ */
 @Configuration
 @EnableCaching
 public class CacheConfig {
@@ -20,6 +17,11 @@ public class CacheConfig {
     private CacheManager cacheManager;
 
 
+    /**
+     * Print cache contents.
+     *
+     * @param cacheName the cache name
+     */
     public void printCacheContents(String cacheName) {
         Cache cache = cacheManager.getCache(cacheName);
         if (cache != null) {

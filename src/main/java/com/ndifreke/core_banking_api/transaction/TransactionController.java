@@ -25,6 +25,9 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+/**
+ * The type Transaction controller.
+ */
 @RestController
 @RequestMapping("/api/transactions")
 @Tag(name = "Transactions", description = "Endpoints for managing transactions")
@@ -37,6 +40,13 @@ public class TransactionController {
     @Autowired
     private JwtUtil jwtUtil;
 
+    /**
+     * Transfer funds response entity.
+     *
+     * @param transferRequest the transfer request
+     * @param request         the request
+     * @return the response entity
+     */
     @Operation(summary = "Transfer funds between accounts")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Funds transferred successfully", content = @Content(schema = @Schema(implementation = TransferResponse.class))),
@@ -63,6 +73,14 @@ public class TransactionController {
         }
     }
 
+    /**
+     * Deposit funds response entity.
+     *
+     * @param accountId     the account id
+     * @param amountRequest the amount request
+     * @param request       the request
+     * @return the response entity
+     */
     @Operation(summary = "Deposit funds into an account")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Funds deposited successfully", content = @Content(schema = @Schema(implementation = DepositResponse.class))),
@@ -87,6 +105,14 @@ public class TransactionController {
         }
     }
 
+    /**
+     * Withdraw funds response entity.
+     *
+     * @param accountId     the account id
+     * @param amountRequest the amount request
+     * @param request       the request
+     * @return the response entity
+     */
     @Operation(summary = "Withdraw funds from an account")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Funds withdrawn successfully", content = @Content(schema = @Schema(implementation = WithdrawalResponse.class))),
@@ -112,6 +138,13 @@ public class TransactionController {
         }
     }
 
+    /**
+     * Gets transaction history.
+     *
+     * @param accountId the account id
+     * @param request   the request
+     * @return the transaction history
+     */
     @Operation(summary = "Get transaction history for an account")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Transaction history retrieved successfully", content = @Content(schema = @Schema(implementation = TransactionHistoryResponse.class))),

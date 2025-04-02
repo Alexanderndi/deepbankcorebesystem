@@ -5,11 +5,19 @@ import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * The type Account number generator.
+ */
 public class AccountNumberGenerator {
 
     private static final SecureRandom secureRandom = new SecureRandom();
     private static final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyMMddHHmmss");
 
+    /**
+     * Generate account number string.
+     *
+     * @return the string
+     */
     public static String generateAccountNumber() {
         // Combine timestamp, random numbers, and a prefix.
         String timestamp = LocalDateTime.now().format(dateTimeFormatter);
@@ -27,13 +35,23 @@ public class AccountNumberGenerator {
         return sb.toString();
     }
 
-    // A more robust method that creates a UUID based account number.
+    /**
+     * Generate uuid based account number string.
+     *
+     * @return the string
+     */
+// A more robust method that creates a UUID based account number.
     public static String generateUUIDBasedAccountNumber(){
         String uuidString = UUID.randomUUID().toString().replace("-","");
         return "ACC-"+uuidString.substring(0,16).toUpperCase();
     }
 
-    // A method that combines a timestamp and a UUID.
+    /**
+     * Generate timestamp uuid account number string.
+     *
+     * @return the string
+     */
+// A method that combines a timestamp and a UUID.
     public static String generateTimestampUUIDAccountNumber(){
         String timestamp = LocalDateTime.now().format(dateTimeFormatter);
         String uuidString = UUID.randomUUID().toString().replace("-","");

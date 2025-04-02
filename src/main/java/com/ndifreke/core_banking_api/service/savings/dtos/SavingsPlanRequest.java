@@ -8,6 +8,9 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+/**
+ * The type Savings plan request.
+ */
 @Data
 @Schema(description = "Request object for creating a savings plan")
 public class SavingsPlanRequest {

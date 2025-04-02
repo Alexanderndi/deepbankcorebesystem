@@ -14,6 +14,9 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 
+/**
+ * The type Deposit event consumer.
+ */
 @Component
 public class DepositEventConsumer {
 
@@ -28,6 +31,11 @@ public class DepositEventConsumer {
     @Autowired
     private NotificationService notificationService;
 
+    /**
+     * Consume deposit event.
+     *
+     * @param event the event
+     */
     @KafkaListener(topics = "deposit-events", groupId = "core-banking-group")
     public void consumeDepositEvent(DepositEvent event) {
         logger.info("Received deposit event: {}", event);

@@ -7,6 +7,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
+/**
+ * The type Fixed deposit.
+ */
 @Entity
 @Data
 @Table(name = "fixed_deposits")

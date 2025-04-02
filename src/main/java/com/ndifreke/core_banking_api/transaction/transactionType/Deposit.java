@@ -10,6 +10,9 @@ import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.UUID;
 
+/**
+ * The type Deposit.
+ */
 @Entity
 @Table(name = "deposits")
 @Getter
