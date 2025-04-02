@@ -1,17 +1,23 @@
 package com.ndifreke.core_banking_api.service.savings;
 
+import com.ndifreke.core_banking_api.account.AccountService;
+import com.ndifreke.core_banking_api.entity.Account;
 import com.ndifreke.core_banking_api.entity.SavingsPlan;
 import com.ndifreke.core_banking_api.dto.savings.SavingsPlanRequest;
 import com.ndifreke.core_banking_api.dto.savings.SavingsPlanResponse;
+import com.ndifreke.core_banking_api.entity.User;
 import com.ndifreke.core_banking_api.entity.enums.savings.RecurringDepositFrequency;
 import com.ndifreke.core_banking_api.entity.enums.savings.SavingsPlanStatus;
 import com.ndifreke.core_banking_api.repository.SavingsPlanRepository;
+import com.ndifreke.core_banking_api.repository.UserRepository;
+import com.ndifreke.core_banking_api.service.notification.MailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -25,6 +31,15 @@ public class SavingsPlanService {
     @Autowired
     private SavingsPlanRepository savingsPlanRepository;
 
+    @Autowired
+    private AccountService accountService;
+
+    @Autowired
+    private MailService mailService;
+
+    @Autowired
+    private UserRepository userRepository;
+
     /**
      * Create savings plan savings plan response.
      *
@@ -34,6 +49,12 @@ public class SavingsPlanService {
      */
     public SavingsPlanResponse createSavingsPlan(SavingsPlanRequest request, UUID userId) {
         validateSavingsPlanRequest(request);
+
+        // Check if user has a SAVINGS account
+        Account savingsAccount = accountService.getUserSavingsAccount(userId);
+        if (savingsAccount == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User must have a SAVINGS account to create a savings plan");
+        }
 
         SavingsPlan savingsPlan = new SavingsPlan();
         savingsPlan.setUserId(userId);
@@ -129,6 +150,14 @@ public class SavingsPlanService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Insufficient balance");
         }
 
+        // Transfer withdrawn amount to user's SAVINGS account
+        Account savingsAccount = accountService.getUserSavingsAccount(userId);
+        if (savingsAccount == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User does not have a SAVINGS account for withdrawal");
+        }
+        accountService.depositToAccount(savingsAccount.getAccountId(), amount);
+
+
         BigDecimal newBalance = savingsPlan.getCurrentBalance().subtract(amount);
         savingsPlan.setCurrentBalance(newBalance);
         savingsPlanRepository.save(savingsPlan);
@@ -151,6 +180,10 @@ public class SavingsPlanService {
     }
 
     private void validateSavingsPlanRequest(SavingsPlanRequest request) {
+        LocalDate now = LocalDate.now();
+        if (request.getStartDate().isBefore(now)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Start date cannot be earlier than today");
+        }
         if (request.getStartDate().isAfter(request.getEndDate())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Start date must be before end date");
         }

@@ -201,4 +201,16 @@ public class AccountService {
     public Optional<Account> findAccountById(UUID accountId) {
         return accountRepository.findById(accountId);
     }
+
+    public Account getUserSavingsAccount(UUID userId) {
+        return accountRepository.findByUserIdAndAccountType(userId, "SAVINGS")
+                .orElse(null);
+    }
+
+    public void depositToAccount(UUID accountId, BigDecimal amount) {
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new IllegalStateException("Account not found"));
+        account.setBalance(account.getBalance().add(amount));
+        accountRepository.save(account);
+    }
 }

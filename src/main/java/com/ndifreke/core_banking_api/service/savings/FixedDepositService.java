@@ -1,16 +1,23 @@
 package com.ndifreke.core_banking_api.service.savings;
 
+import com.ndifreke.core_banking_api.account.AccountService;
+import com.ndifreke.core_banking_api.entity.Account;
 import com.ndifreke.core_banking_api.entity.FixedDeposit;
 import com.ndifreke.core_banking_api.dto.savings.FixedDepositRequest;
 import com.ndifreke.core_banking_api.dto.savings.FixedDepositResponse;
+import com.ndifreke.core_banking_api.entity.User;
 import com.ndifreke.core_banking_api.entity.enums.savings.FixedDepositStatus;
 import com.ndifreke.core_banking_api.repository.FixedDepositRepository;
+import com.ndifreke.core_banking_api.repository.UserRepository;
+import com.ndifreke.core_banking_api.service.notification.MailService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.CacheManager;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -24,6 +31,9 @@ public class FixedDepositService {
     @Autowired
     private FixedDepositRepository fixedDepositRepository;
 
+    @Autowired
+    private AccountService accountService;
+
     /**
      * Create fixed deposit fixed deposit response.
      *
@@ -33,6 +43,12 @@ public class FixedDepositService {
      */
     public FixedDepositResponse createFixedDeposit(FixedDepositRequest request, UUID userId) {
         validateFixedDepositRequest(request);
+
+        // Check if user has a SAVINGS account
+        Account savingsAccount = accountService.getUserSavingsAccount(userId);
+        if (savingsAccount == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User must have a SAVINGS account to create a fixed deposit");
+        }
 
         FixedDeposit fixedDeposit = new FixedDeposit();
         fixedDeposit.setUserId(userId);
@@ -89,6 +105,16 @@ public class FixedDepositService {
         if (fixedDeposit.getStatus() != FixedDepositStatus.MATURED) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Fixed deposit not matured");
         }
+
+        // Transfer deposit amount to user's SAVINGS account
+        Account savingsAccount = accountService.getUserSavingsAccount(userId);
+        if (savingsAccount == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User does not have a SAVINGS account for withdrawal");
+        }
+
+        BigDecimal withdrawalAmount = fixedDeposit.getDepositAmount();
+        accountService.depositToAccount(savingsAccount.getAccountId(), withdrawalAmount);
+
         fixedDeposit.setStatus(FixedDepositStatus.CLOSED);
         fixedDepositRepository.save(fixedDeposit);
         return convertToFixedDepositResponse(fixedDeposit);
@@ -106,6 +132,10 @@ public class FixedDepositService {
     }
 
     private void validateFixedDepositRequest(FixedDepositRequest request) {
+        LocalDate now = LocalDate.now();
+        if (request.getDepositDate().isBefore(now)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Deposit date cannot be earlier than today");
+        }
         if (request.getDepositAmount().compareTo(BigDecimal.ZERO) <= 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Deposit amount must be greater than zero");
         }
