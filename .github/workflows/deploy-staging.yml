@@ -43,6 +43,8 @@ jobs:
           aws-region: us-east-1
       - name: Build and Package
         run: ./mvnw clean package -DskipTests
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
       - name: Deploy to Elastic Beanstalk
         run: |
           mkdir -p deploy
@@ -64,17 +66,36 @@ jobs:
           else
             echo "Application version $VERSION_LABEL already exists, skipping creation."
           fi
-          # Check if environment exists, create if not
-          if ! aws elasticbeanstalk describe-environments --environment-names staging | grep -q '"Status":'; then
+          # Debug environment status
+          echo "Checking staging environment status..."
+          aws elasticbeanstalk describe-environments --environment-names staging > env_status.json
+          cat env_status.json
+          # Check if environment exists and is usable
+          if ! jq -e '.Environments[] | select(.EnvironmentName == "staging" and .Status != "Terminated")' env_status.json > /dev/null 2>&1; then
+            echo "Staging environment either doesn't exist or is terminated. Attempting to create..."
+            # Ensure any terminated environment is fully deleted
+            if jq -e '.Environments[] | select(.EnvironmentName == "staging" and .Status == "Terminated")' env_status.json > /dev/null 2>&1; then
+              echo "Deleting terminated staging environment..."
+              aws elasticbeanstalk delete-environment --environment-name staging
+              for i in {1..30}; do
+                if ! aws elasticbeanstalk describe-environments --environment-names staging | grep -q '"Status": "Terminated"'; then
+                  echo "Terminated environment deleted."
+                  break
+                fi
+                echo "Waiting for termination to complete... ($i/30)"
+                sleep 10
+              done
+            fi
             echo "Creating staging environment..."
             aws elasticbeanstalk create-environment \
               --application-name core-banking-api \
               --environment-name staging \
-              --solution-stack-name "64bit Amazon Linux 2023 v5.6.0 running Tomcat 10 Corretto 17" \
+              --solution-stack-name "64bit Amazon Linux 2023 v4.3.2 running Corretto 17" \
               --option-settings Namespace=aws:autoscaling:launchconfiguration,OptionName=InstanceType,Value=t2.micro \
-            || { echo "Failed to create environment"; exit 1; }
+            || { echo "Failed to create environment"; cat env_status.json; exit 1; }
             for i in {1..90}; do
               STATUS=$(aws elasticbeanstalk describe-environments --environment-names staging --query 'Environments[0].Status' --output text)
+              echo "Current status: $STATUS"
               if [ "$STATUS" = "Ready" ]; then
                 echo "Staging environment ready!"
                 break
@@ -89,6 +110,8 @@ jobs:
               echo "Environment not ready after 15 minutes"
               exit 1
             fi
+          else
+            echo "Staging environment already exists and is usable."
           fi
           aws elasticbeanstalk update-environment \
             --application-name core-banking-api \
