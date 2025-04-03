@@ -105,11 +105,12 @@ jobs:
           zip -r ../core-banking-api-staging.zip .
           cd ..
           aws s3 cp core-banking-api-staging.zip s3://elasticbeanstalk-us-east-1-861276105493/core-banking-api-staging.zip
+          unique_version_label="v${{ github.sha }}-$(date +%Y%m%d%H%M%S)"
           aws elasticbeanstalk create-application-version \
             --application-name core-banking-api \
-            --version-label "v${{ github.sha }}" \
+            --version-label "${unique_version_label}" \
             --source-bundle S3Bucket=elasticbeanstalk-us-east-1-861276105493,S3Key=core-banking-api-staging.zip
           aws elasticbeanstalk update-environment \
             --application-name core-banking-api \
             --environment-name staging \
-            --version-label "v${{ github.sha }}"
+            --version-label "${unique_version_label}"
