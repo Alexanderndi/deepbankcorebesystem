@@ -82,16 +82,39 @@ jobs:
           restore-keys: ${{ runner.os }}-m2
       - name: Build artifact
         run: ./mvnw clean package -DskipTests --batch-mode
-      - name: Deploy to staging Heroku
-        env:
-          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
-          HEROKU_APP_NAME: core-banking-api-staging
+      - name: Install AWS CLI
         run: |
-          curl https://cli-assets.heroku.com/install.sh | sh
-          echo "$HEROKU_API_KEY" | heroku auth:token
-          heroku git:remote -a $HEROKU_APP_NAME
-          git config --global user.email "github-actions@example.com"
-          git config --global user.name "GitHub Actions"
-          git add target/*.jar Procfile
-          git commit -m "Deploy to Heroku staging" || echo "No changes to commit"
-          git push heroku HEAD:master --force
+          sudo apt-get update
+          sudo apt-get install -y awscli
+      - name: Configure AWS credentials
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1  # Adjust as needed
+        run: |
+          aws configure set aws_access_key_id "$AWS_ACCESS_KEY_ID"
+          aws configure set aws_secret_access_key "$AWS_SECRET_ACCESS_KEY"
+          aws configure set default.region "$AWS_REGION"
+      - name: Deploy to AWS Elastic Beanstalk
+        run: |
+          # Create deployment package
+          mkdir -p deploy
+          cp target/core-banking-api-0.0.1-SNAPSHOT.jar deploy/
+          [ -f Procfile ] && cp Procfile deploy/ || echo "web: java -jar core-banking-api-0.0.1-SNAPSHOT.jar" > deploy/Procfile
+          cd deploy
+          zip -r ../core-banking-api-staging.zip .
+          cd ..
+          # Upload to S3 and deploy
+          aws s3 cp core-banking-api-staging.zip s3://elasticbeanstalk-us-east-1-861276105493/core-banking-api-staging.zip
+          aws elasticbeanstalk create-application-version \
+            --application-name core-banking-api \
+            --version-label "v${{ github.sha }}" \
+            --source-bundle S3Bucket=elasticbeanstalk-us-east-1-861276105493,S3Key=core-banking-api-staging.zip
+          aws elasticbeanstalk update-environment \
+            --application-name core-banking-api \
+            --environment-name staging \
+            --version-label "v${{ github.sha }}"
+      - name: Verify deployment
+        run: |
+          sleep 60  # Wait for deployment to stabilize
+          aws elasticbeanstalk describe-environments --environment-name staging
