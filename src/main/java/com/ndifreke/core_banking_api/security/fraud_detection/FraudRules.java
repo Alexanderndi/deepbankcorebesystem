@@ -18,12 +18,12 @@ public class FraudRules {
      * The constant HIGH_FREQUENCY_TIMEFRAME_MINUTES.
      */
     public static final int HIGH_FREQUENCY_TIMEFRAME_MINUTES = 10;
-    /**
-     * The constant BLACKLISTED_ACCOUNTS.
-     */
-    public static final String[] BLACKLISTED_ACCOUNTS = {"ACC-12345", "ACC-67890"};
-    /**
-     * The constant HIGH_VELOCITY_BALANCE_CHANGE.
-     */
-    public static final BigDecimal HIGH_VELOCITY_BALANCE_CHANGE = new BigDecimal("0.8");
+//    /**
+//     * The constant BLACKLISTED_ACCOUNTS.
+//     */
+//    public static final String[] BLACKLISTED_ACCOUNTS = {"ACC-12345", "ACC-67890"};
+//    /**
+//     * The constant HIGH_VELOCITY_BALANCE_CHANGE.
+//     */
+//    public static final BigDecimal HIGH_VELOCITY_BALANCE_CHANGE = new BigDecimal("0.8");
 }

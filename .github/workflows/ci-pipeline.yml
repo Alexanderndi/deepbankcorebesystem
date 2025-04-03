@@ -14,82 +14,84 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
-
       - name: Cache Maven dependencies
         uses: actions/cache@v4
         with:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
-
-      - name: Build and run unit/integration tests
-        run: mvn clean verify --batch-mode  # 'verify' includes integration tests
+      - name: Build and run tests
+        run: ./mvnw clean verify --batch-mode
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: target/surefire-reports/
 
   code-quality:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
-
       - name: Cache Maven dependencies
         uses: actions/cache@v4
         with:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
-
       - name: Run code quality checks
-        run: mvn spotbugs:check pmd:check checkstyle:check --batch-mode
+        run: ./mvnw spotbugs:spotbugs pmd:pmd checkstyle:checkstyle --batch-mode
+      - name: Upload code quality reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-quality-reports
+          path: |
+            target/spotbugsXml.xml
+            target/pmd.xml
+            target/checkstyle-result.xml
+
   deploy-staging:
-    needs: [ build-and-test, code-quality ]
+    needs: [build-and-test, code-quality]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
-
       - name: Cache Maven dependencies
         uses: actions/cache@v4
         with:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
-
       - name: Build artifact
-        run: mvn clean package -DskipTests --batch-mode
-
+        run: ./mvnw clean package -DskipTests --batch-mode
       - name: Deploy to staging Heroku
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
           HEROKU_APP_NAME: core-banking-api-staging
         run: |
-          # Install Heroku CLI
           curl https://cli-assets.heroku.com/install.sh | sh
-          # Login to Heroku
           echo "$HEROKU_API_KEY" | heroku auth:token
-          # Add Heroku remote
           heroku git:remote -a $HEROKU_APP_NAME
-          # Deploy via Git (push the built app)
           git config --global user.email "github-actions@example.com"
           git config --global user.name "GitHub Actions"
           git add target/*.jar Procfile
-          git commit -m "Deploy to Heroku staging"
+          git commit -m "Deploy to Heroku staging" || echo "No changes to commit"
           git push heroku HEAD:master --force
