@@ -1,47 +1,43 @@
 package com.ndifreke.core_banking_api.dto.savings;
 
-import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Data;
-
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
-/**
- * The type Savings plan response.
- */
-@Data
-@Schema(description = "Response object for savings plan details")
-public class SavingsPlanResponse {
+public class SavingsPlanResponse implements Serializable {
+    private static final long serialVersionUID = 1L; // Recommended for Serializable classes
 
-    @Schema(description = "Unique ID of the savings plan")
     private UUID planId;
-
-    @Schema(description = "Name of the savings plan")
     private String planName;
-
-    @Schema(description = "Target amount to save")
     private BigDecimal targetAmount;
-
-    @Schema(description = "Start date of the savings plan")
     private LocalDate startDate;
-
-    @Schema(description = "End date of the savings plan")
     private LocalDate endDate;
-
-    @Schema(description = "Interest rate for the savings plan")
     private BigDecimal interestRate;
-
-    @Schema(description = "Amount to deposit regularly")
     private BigDecimal recurringDepositAmount;
-
-    @Schema(description = "Frequency of recurring deposits")
     private String recurringDepositFrequency;
-
-    @Schema(description = "Current balance of the savings plan")
     private BigDecimal currentBalance;
-
-    @Schema(description = "Status of the savings plan")
     private String status;
 
+    // Getters and setters
+    public UUID getPlanId() { return planId; }
+    public void setPlanId(UUID planId) { this.planId = planId; }
+    public String getPlanName() { return planName; }
+    public void setPlanName(String planName) { this.planName = planName; }
+    public BigDecimal getTargetAmount() { return targetAmount; }
+    public void setTargetAmount(BigDecimal targetAmount) { this.targetAmount = targetAmount; }
+    public LocalDate getStartDate() { return startDate; }
+    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
+    public LocalDate getEndDate() { return endDate; }
+    public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
+    public BigDecimal getInterestRate() { return interestRate; }
+    public void setInterestRate(BigDecimal interestRate) { this.interestRate = interestRate; }
+    public BigDecimal getRecurringDepositAmount() { return recurringDepositAmount; }
+    public void setRecurringDepositAmount(BigDecimal recurringDepositAmount) { this.recurringDepositAmount = recurringDepositAmount; }
+    public String getRecurringDepositFrequency() { return recurringDepositFrequency; }
+    public void setRecurringDepositFrequency(String recurringDepositFrequency) { this.recurringDepositFrequency = recurringDepositFrequency; }
+    public BigDecimal getCurrentBalance() { return currentBalance; }
+    public void setCurrentBalance(BigDecimal currentBalance) { this.currentBalance = currentBalance; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 }

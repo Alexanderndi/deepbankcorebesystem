@@ -17,7 +17,10 @@ spring:
     database-platform: org.hibernate.dialect.MySQL8Dialect
   cache:
     type: redis
-    cache-names: accounts
+    redis:
+      time-to-live: 300000
+      cache-null-values: false
+    cache-names: accounts, account, savings_plans
   mail:
     host: localhost
     port: 1025
