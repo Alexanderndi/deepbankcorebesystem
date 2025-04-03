@@ -47,13 +47,18 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y jq
       - name: Deploy to Elastic Beanstalk
         run: |
+          # Prepare deployment bundle
           mkdir -p deploy
           cp target/core-banking-api-0.0.1-SNAPSHOT.jar deploy/
           [ -f Procfile ] && cp Procfile deploy/ || echo "web: java -jar core-banking-api-0.0.1-SNAPSHOT.jar" > deploy/Procfile
           cd deploy
           zip -r ../core-banking-api-staging.zip .
           cd ..
+
+          # Upload to S3
           aws s3 cp core-banking-api-staging.zip s3://elasticbeanstalk-us-east-1-861276105493/core-banking-api-staging.zip
+
+          # Set version label
           VERSION_LABEL="v${{ github.sha }}"
           if ! aws elasticbeanstalk describe-application-versions \
             --application-name core-banking-api \
@@ -66,14 +71,27 @@ jobs:
           else
             echo "Application version $VERSION_LABEL already exists, skipping creation."
           fi
-          # Debug environment status
+
+          # Get a valid solution stack for Amazon Linux 2 and Corretto 17
+          echo "Fetching available solution stack..."
+          SOLUTION_STACK=$(aws elasticbeanstalk list-available-solution-stacks \
+            --query 'SolutionStacks[] | [?contains(@, `Amazon Linux 2`) && contains(@, `Corretto 17`)] | [0]' \
+            --output text)
+          if [ -z "$SOLUTION_STACK" ]; then
+            echo "Error: No solution stack found for Amazon Linux 2 and Corretto 17"
+            exit 1
+          fi
+          echo "Selected solution stack: $SOLUTION_STACK"
+
+          # Check staging environment status
           echo "Checking staging environment status..."
           aws elasticbeanstalk describe-environments --environment-names staging > env_status.json
           cat env_status.json
-          # Check if environment exists and is usable
+
+          # Create environment if it doesn’t exist or is terminated
           if ! jq -e '.Environments[] | select(.EnvironmentName == "staging" and .Status != "Terminated")' env_status.json > /dev/null 2>&1; then
             echo "Staging environment either doesn't exist or is terminated. Attempting to create..."
-            # Ensure any terminated environment is fully deleted
+            # Clean up terminated environment if present
             if jq -e '.Environments[] | select(.EnvironmentName == "staging" and .Status == "Terminated")' env_status.json > /dev/null 2>&1; then
               echo "Deleting terminated staging environment..."
               aws elasticbeanstalk terminate-environment --environment-name staging --terminate-resources
@@ -86,13 +104,15 @@ jobs:
                 sleep 10
               done
             fi
-            echo "Creating staging environment..."
+            echo "Creating staging environment with solution stack: $SOLUTION_STACK..."
             aws elasticbeanstalk create-environment \
               --application-name core-banking-api \
               --environment-name staging \
-              --solution-stack-name "64bit Amazon Linux 2023 v5.6.0 running Corretto 17" \
+              --solution-stack-name "$SOLUTION_STACK" \
               --option-settings Namespace=aws:autoscaling:launchconfiguration,OptionName=InstanceType,Value=t2.micro \
             || { echo "Failed to create environment"; cat env_status.json; exit 1; }
+
+            # Wait for environment to be ready
             for i in {1..90}; do
               STATUS=$(aws elasticbeanstalk describe-environments --environment-names staging --query 'Environments[0].Status' --output text)
               echo "Current status: $STATUS"
@@ -113,6 +133,8 @@ jobs:
           else
             echo "Staging environment already exists and is usable."
           fi
+
+          # Update environment with new version
           aws elasticbeanstalk update-environment \
             --application-name core-banking-api \
             --environment-name staging \
