@@ -11,9 +11,12 @@ import com.ndifreke.core_banking_api.entity.enums.savings.SavingsPlanStatus;
 import com.ndifreke.core_banking_api.repository.SavingsPlanRepository;
 import com.ndifreke.core_banking_api.repository.UserRepository;
 import com.ndifreke.core_banking_api.service.notification.MailService;
+import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -51,6 +54,8 @@ public class SavingsPlanService {
      * @param userId  the user id
      * @return the savings plan response
      */
+    @CachePut(value = "savings_plans", key = "'savings_plan:' + #result.planId")
+    @Transactional
     public SavingsPlanResponse createSavingsPlan(SavingsPlanRequest request, UUID userId) {
         validateSavingsPlanRequest(request);
 
@@ -106,6 +111,7 @@ public class SavingsPlanService {
      * @param userId the user id
      * @return the savings plans
      */
+    @Cacheable(value = "savings_plans", key = "'savings_plans:' + #userId")
     public List<SavingsPlanResponse> getSavingsPlans(UUID userId) {
         List<SavingsPlan> savingsPlans = savingsPlanRepository.findByUserId(userId);
         return savingsPlans.stream().map(this::convertToSavingsPlanResponse).collect(Collectors.toList());
@@ -118,6 +124,7 @@ public class SavingsPlanService {
      * @param userId the user id
      * @return the savings plan by id
      */
+    @Cacheable(value = "savings_plans", key = "'savings_plan:' + #planId")
     public SavingsPlanResponse getSavingsPlanById(UUID planId, UUID userId) {
         SavingsPlan savingsPlan = savingsPlanRepository.findById(planId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Savings plan not found"));
@@ -135,6 +142,8 @@ public class SavingsPlanService {
      * @param userId the user id
      * @return the savings plan response
      */
+    @CachePut(value = "savings_plans", key = "'savings_plan:' + #planId")
+    @Transactional
     public SavingsPlanResponse depositToSavingsPlan(UUID planId, BigDecimal amount, UUID userId) {
         SavingsPlan savingsPlan = savingsPlanRepository.findById(planId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Savings plan not found"));

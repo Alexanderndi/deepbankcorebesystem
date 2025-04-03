@@ -16,8 +16,11 @@ spring:
       javax.persistence.validation.mode: AUTO
     database-platform: org.hibernate.dialect.MySQL8Dialect
   cache:
-    type: none
-    cache-names: accounts
+    type: redis
+    redis:
+      time-to-live: 300000
+      cache-null-values: false
+    cache-names: accounts, account, savings_plans
   mail:
     host: localhost
     port: 1025

@@ -10,8 +10,11 @@ import com.ndifreke.core_banking_api.entity.enums.savings.FixedDepositStatus;
 import com.ndifreke.core_banking_api.repository.FixedDepositRepository;
 import com.ndifreke.core_banking_api.repository.UserRepository;
 import com.ndifreke.core_banking_api.service.notification.MailService;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -47,6 +50,8 @@ public class FixedDepositService {
      * @param userId  the user id
      * @return the fixed deposit response
      */
+    @CachePut(value = "fixed_deposits", key = "'fixed_deposit:' + #result.depositId")
+    @Transactional
     public FixedDepositResponse createFixedDeposit(FixedDepositRequest request, UUID userId) {
         validateFixedDepositRequest(request);
 
@@ -101,6 +106,7 @@ public class FixedDepositService {
      * @param userId the user id
      * @return the fixed deposits
      */
+    @Cacheable(value = "fixed_deposits", key = "'fixed_deposits:' + #userId")
     public List<FixedDepositResponse> getFixedDeposits(UUID userId) {
         List<FixedDeposit> fixedDeposits = fixedDepositRepository.findByUserId(userId);
         return fixedDeposits.stream().map(this::convertToFixedDepositResponse).collect(Collectors.toList());
@@ -113,6 +119,7 @@ public class FixedDepositService {
      * @param userId    the user id
      * @return the fixed deposit by id
      */
+    @Cacheable(value = "fixed_deposits", key = "'fixed_deposit:' + #depositId")
     public FixedDepositResponse getFixedDepositById(UUID depositId, UUID userId) {
         FixedDeposit fixedDeposit = fixedDepositRepository.findById(depositId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Fixed deposit not found"));
@@ -129,6 +136,8 @@ public class FixedDepositService {
      * @param userId    the user id
      * @return the fixed deposit response
      */
+    @CachePut(value = "fixed_deposits", key = "'fixed_deposit:' + #depositId")
+    @Transactional
     public FixedDepositResponse withdrawFixedDeposit(UUID depositId, UUID userId) {
         FixedDeposit fixedDeposit = fixedDepositRepository.findById(depositId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Fixed deposit not found"));

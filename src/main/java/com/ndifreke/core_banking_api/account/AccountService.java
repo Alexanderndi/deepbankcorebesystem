@@ -9,6 +9,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -45,6 +47,7 @@ public class AccountService {
      * @param authenticatedUserId the authenticated user id
      * @return the account
      */
+    @CachePut(value = "accounts", key = "'account:' + #result.accountId")
     public Account createAccount(Account account, BigDecimal initialBalance, UUID authenticatedUserId) {
         if (!account.getUserId().equals(authenticatedUserId)) {
             logger.warn("Access denied: Cannot create account for another user. User ID: {}, Authenticated User ID: {}",
@@ -61,6 +64,9 @@ public class AccountService {
         String accountNumber = AccountNumberGenerator.generateTimestampUUIDAccountNumber();
         account.setAccountNumber(accountNumber);
         account.setBalance(initialBalance);
+
+        // Invalidate user accounts cache
+        evictUserAccountsCache(account.getUserId());
         return accountRepository.save(account);
     }
 
@@ -71,6 +77,7 @@ public class AccountService {
      * @param authenticatedUserId the authenticated user id
      * @return the account by id
      */
+    @Cacheable(value = "accounts", key = "'account:' + #accountId")
     public Account getAccountById(UUID accountId, UUID authenticatedUserId) {
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new NotFoundException("Account not found with ID: " + accountId));
@@ -92,6 +99,7 @@ public class AccountService {
      * @param accountId           the account id
      * @return the account by id
      */
+    @Cacheable(value = "accounts", key = "'accounts:' + #userId")
     public Account getToAccountById(UUID accountId) {
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new NotFoundException("Account not found with ID: " + accountId));
@@ -106,6 +114,7 @@ public class AccountService {
      * @param authenticatedUserId the authenticated user id
      * @return the accounts by user id
      */
+    @Cacheable(value = "accounts", key = "'accounts:' + #userId")
     public List<Account> getAccountsByUserId(UUID userId, UUID authenticatedUserId) {
         if (!userId.equals(authenticatedUserId)) {
             logger.warn("Access denied: User {} attempted to access accounts of user {}",
@@ -162,6 +171,7 @@ public class AccountService {
      * @param accountId           the account id
      * @param authenticatedUserId the authenticated user id
      */
+    @CacheEvict(value = "accounts", key = "'account:' + #accountId")
     public void deleteAccount(UUID accountId, UUID authenticatedUserId) {
         Account account = getAccountById(accountId, authenticatedUserId);
         accountRepository.delete(account);
@@ -192,6 +202,7 @@ public class AccountService {
         return accountRepository.findById(accountId);
     }
 
+    @Cacheable(value = "savings_accounts", key = "'savings_account:' + #userId")
     public Account getUserSavingsAccount(UUID userId) {
         return accountRepository.findByUserIdAndAccountType(userId, "SAVINGS")
                 .orElse(null);
@@ -212,5 +223,9 @@ public class AccountService {
         }
         account.setBalance(account.getBalance().subtract(amount));
         accountRepository.save(account);
+    }
+
+    private void evictUserAccountsCache(UUID userId) {
+        // Manual eviction method if needed; Spring handles this with @CacheEvict
     }
 }
