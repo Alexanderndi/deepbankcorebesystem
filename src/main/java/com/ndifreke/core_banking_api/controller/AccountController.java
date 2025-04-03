@@ -5,7 +5,6 @@ import com.ndifreke.core_banking_api.entity.Account;
 import com.ndifreke.core_banking_api.account.AccountService;
 import com.ndifreke.core_banking_api.config.CacheConfig;
 import com.ndifreke.core_banking_api.exception.NotFoundException;
-import com.ndifreke.core_banking_api.user.UserService;
 import com.ndifreke.core_banking_api.util.JwtUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;

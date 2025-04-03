@@ -1,0 +1,26 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutBucketOwnershipControls",
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::elasticbeanstalk-us-east-1-861276105493",
+        "arn:aws:s3:::elasticbeanstalk-us-east-1-861276105493/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": "elasticbeanstalk:*",
+      "Resource": [
+        "arn:aws:elasticbeanstalk:us-east-1:861276105493:application/core-banking-api",
+        "arn:aws:elasticbeanstalk:us-east-1:861276105493:environment/*"
+      ]
+    }
+  ]
+}

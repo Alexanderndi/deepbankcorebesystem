@@ -12,7 +12,6 @@ import com.ndifreke.core_banking_api.repository.UserRepository;
 import com.ndifreke.core_banking_api.service.notification.MailService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;

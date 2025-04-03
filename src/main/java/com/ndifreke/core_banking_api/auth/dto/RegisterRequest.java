@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -38,4 +39,13 @@ public class RegisterRequest {
 
     @Schema(description = "List of user roles", example = "[\"USER\"]")
     private List<String> roles;
+
+
+    public List<String> getRoles() {
+        return roles != null ? new ArrayList<>(roles) : new ArrayList<>();
+    }
+
+    public void setRoles(List<String> roles) {
+        this.roles = roles != null ? new ArrayList<>(roles) : new ArrayList<>();
+    }
 }
