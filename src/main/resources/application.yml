@@ -60,6 +60,24 @@ jwt:
 server:
   port: 8989
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus,info
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: core-banking-api
+
+
 logging:
   level:
     org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer: ERROR
+    org.springframework.cache: DEBUG  # For cache operations
+    org.hibernate.SQL: DEBUG          # For SQL queries
+    org.hibernate.type.descriptor.sql: TRACE  # For bind parameters
+    com.ndifreke.core_banking_api: INFO
+    org.springframework.boot.actuate: DEBUG
