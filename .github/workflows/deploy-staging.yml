@@ -19,7 +19,7 @@ jobs:
       - name: Cache Maven dependencies
         uses: actions/cache@v4
         with:
-          path: ~/.m2
+          path: ~/ .m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
       - name: Install AWS CLI
@@ -68,18 +68,21 @@ jobs:
           # Check if environment exists and is usable
           if ! jq -e '.Environments[] | select(.EnvironmentName == "staging" and .Status != "Terminated")' env_status.json > /dev/null 2>&1; then
             echo "Staging environment either doesn't exist or is terminated. Attempting to create..."
-            # Ensure any terminated environment is fully deleted
+            # Check if the environment still exists before attempting to delete
             if jq -e '.Environments[] | select(.EnvironmentName == "staging" and .Status == "Terminated")' env_status.json > /dev/null 2>&1; then
               echo "Deleting terminated staging environment..."
-              aws elasticbeanstalk terminate-environment --environment-name staging --terminate-resources
+              # Attempt to terminate, but continue if the environment is already gone
+              aws elasticbeanstalk terminate-environment --environment-name staging --terminate-resources || true
               for i in {1..30}; do
-                if ! aws elasticbeanstalk describe-environments --environment-names staging | grep -q '"Status": "Terminated"'; then
-                  echo "Terminated environment deleted."
+                if ! aws elasticbeanstalk describe-environments --environment-names staging | jq -e '.Environments[] | select(.EnvironmentName == "staging")' > /dev/null 2>&1; then
+                  echo "Terminated environment fully deleted."
                   break
                 fi
                 echo "Waiting for termination to complete... ($i/30)"
                 sleep 10
               done
+            else
+              echo "No terminated staging environment found, proceeding to create a new one."
             fi
             echo "Creating staging environment..."
             aws elasticbeanstalk create-environment \
