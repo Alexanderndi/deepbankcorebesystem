@@ -19,7 +19,7 @@ jobs:
       - name: Cache Maven dependencies
         uses: actions/cache@v4
         with:
-          path: ~/ .m2
+          path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
       - name: Install AWS CLI
@@ -92,7 +92,7 @@ jobs:
               --option-settings \
                 Namespace=aws:autoscaling:launchconfiguration,OptionName=InstanceType,Value=t3.micro \
                 Namespace=aws:autoscaling:launchconfiguration,OptionName=IamInstanceProfile,Value=aws-elasticbeanstalk-ec2-role \
-              --service-role arn:aws:iam::960349184759:role/aws-elasticbeanstalk-service-role \
+              --service-role=arn:aws:iam::960349184759:role/aws-elasticbeanstalk-service-role \
             || { echo "Failed to create environment"; cat env_status.json; exit 1; }
             for i in {1..90}; do
               STATUS=$(aws elasticbeanstalk describe-environments --environment-names staging --query 'Environments[0].Status' --output text)
