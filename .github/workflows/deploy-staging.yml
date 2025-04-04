@@ -22,8 +22,13 @@ jobs:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
-      - name: Verify AWS CLI
+      - name: Install AWS CLI
         run: |
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          sudo apt-get update
+          sudo apt-get install -y unzip
+          unzip awscliv2.zip
+          sudo ./aws/install --update
           aws --version
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -81,7 +86,10 @@ jobs:
               --application-name core-banking-api \
               --environment-name staging \
               --solution-stack-name "64bit Amazon Linux 2023 v4.5.0 running Corretto 17" \
-              --option-settings Namespace=aws:autoscaling:launchconfiguration,OptionName=InstanceType,Value=t2.micro \
+              --option-settings \
+                Namespace=aws:autoscaling:launchconfiguration,OptionName=InstanceType,Value=t3.micro \
+                Namespace=aws:autoscaling:launchconfiguration,OptionName=IamInstanceProfile,Value=aws-elasticbeanstalk-ec2-role \
+              --service-role arn:aws:iam::960349184759:role/aws-elasticbeanstalk-service-role \
             || { echo "Failed to create environment"; cat env_status.json; exit 1; }
             for i in {1..90}; do
               STATUS=$(aws elasticbeanstalk describe-environments --environment-names staging --query 'Environments[0].Status' --output text)
