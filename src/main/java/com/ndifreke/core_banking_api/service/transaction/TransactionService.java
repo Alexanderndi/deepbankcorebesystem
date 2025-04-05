@@ -1,6 +1,11 @@
 package com.ndifreke.core_banking_api.service.transaction;
 
-import com.ndifreke.core_banking_api.dto.transaction.*;
+import com.ndifreke.core_banking_api.dto.transaction.DepositResponse;
+import com.ndifreke.core_banking_api.dto.transaction.TransactionHistoryResponse;
+import com.ndifreke.core_banking_api.dto.transaction.TransferResponse;
+import com.ndifreke.core_banking_api.dto.transaction.WithdrawalResponse;
+import com.ndifreke.core_banking_api.dto.transaction.TransactionResponseInterface;
+
 import com.ndifreke.core_banking_api.entity.Account;
 import com.ndifreke.core_banking_api.account.AccountService;
 import com.ndifreke.core_banking_api.entity.enums.TransactionType;
@@ -79,16 +84,12 @@ public class TransactionService {
         Account toAccount = accountService.findAccountById(toAccountId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Destination account not found"));
 
-        if(fromAccountId == null || toAccountId == null){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fromAccountId and toAccountId must not be null for transfer");
-        }
-
         if (fromAccount.getBalance().compareTo(amount) < 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Insufficient funds");
         }
 
         // Check for fraud
-        String fraudReason = isFraudulentTransfer(fromAccount, toAccount, amount);
+        String fraudReason = isFraudulentTransfer(fromAccount, amount);
         if (fraudReason != null) {
             User fromUser = userRepository.findById(fromAccount.getUserId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
@@ -273,21 +274,13 @@ public class TransactionService {
         }
     }
 
-    private TransferResponse convertToTransferResponse(Transfer transfer) {
-        return TransactionService.getTransferResponse(transfer);
-    }
-
-    private TransferResponse convertToTransactionResponse(Transfer transaction) {
-        return TransactionService.getTransferResponse(transaction);
-    }
-
     /**
      * Gets transfer response.
      *
      * @param transaction the transaction
      * @return the transfer response
      */
-    static TransferResponse getTransferResponse(Transfer transaction) {
+    TransferResponse convertToTransferResponse(Transfer transaction) {
         TransferResponse response = new TransferResponse();
         response.setTransactionId(transaction.getTransactionId());
         response.setFromAccountId(transaction.getFromAccountId());
@@ -299,17 +292,13 @@ public class TransactionService {
         return response;
     }
 
-    private DepositResponse convertToDepositResponse(Deposit deposit) {
-        return TransactionService.getDepositResponse(deposit);
-    }
-
     /**
      * Gets deposit response.
      *
      * @param deposit the deposit
      * @return the deposit response
      */
-    static DepositResponse getDepositResponse(Deposit deposit) {
+    DepositResponse convertToDepositResponse(Deposit deposit) {
         DepositResponse response = new DepositResponse();
         response.setDepositId(deposit.getDepositId());
         response.setAccountId(deposit.getAccountId());
@@ -319,17 +308,13 @@ public class TransactionService {
         return response;
     }
 
-    private WithdrawalResponse convertToWithdrawalResponse(Withdrawal withdrawal) {
-        return TransactionService.getWithdrawalResponse(withdrawal);
-    }
-
     /**
      * Gets withdrawal response.
      *
      * @param withdrawal the withdrawal
      * @return the withdrawal response
      */
-    static WithdrawalResponse getWithdrawalResponse(Withdrawal withdrawal) {
+    WithdrawalResponse convertToWithdrawalResponse(Withdrawal withdrawal) {
         WithdrawalResponse response = new WithdrawalResponse();
         response.setWithdrawalId(withdrawal.getWithdrawalId());
         response.setAccountId(withdrawal.getAccountId());
@@ -339,24 +324,16 @@ public class TransactionService {
         return response;
     }
 
-    private String isFraudulentTransfer(Account fromAccount, Account toAccount, BigDecimal amount) {
+    private String isFraudulentTransfer(Account fromAccount, BigDecimal amount) {
         if (amount.compareTo(FraudRules.LARGE_TRANSFER_THRESHOLD) > 0) {
             logger.warn("Potential fraud: Large transfer amount detected: {}", amount);
             return "Large transfer amount";
-        }
-        if (isAccountBlacklisted(fromAccount.getAccountNumber()) || isAccountBlacklisted(toAccount.getAccountNumber())) {
-            logger.warn("Potential fraud: Transaction with blacklisted account");
-            return "Blacklisted account";
         }
         if (isHighFrequencyTransaction(fromAccount.getAccountNumber())) {
             logger.warn("Potential fraud: High frequency transaction from account: {}", fromAccount.getAccountNumber());
             return "High frequency transaction";
         }
         return null;
-    }
-
-    private boolean isAccountBlacklisted(String accountNumber) {
-        return false;
     }
 
     private boolean isHighFrequencyTransaction(String accountNumber) {

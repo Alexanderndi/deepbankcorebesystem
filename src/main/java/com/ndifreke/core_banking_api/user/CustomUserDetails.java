@@ -20,7 +20,7 @@ public class CustomUserDetails implements UserDetails {
     private final String firstName;
     private final String lastName;
     private final Collection<? extends GrantedAuthority> authorities;
-    private final User user; // Add this line
+    private transient User user; // Add this line
 
     /**
      * Instantiates a new Custom user details.
@@ -36,6 +36,10 @@ public class CustomUserDetails implements UserDetails {
                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
                 .collect(Collectors.toList());
         this.user = user; // Add this line
+    }
+
+    public User getUser() {
+        return user;
     }
 
     @Override
