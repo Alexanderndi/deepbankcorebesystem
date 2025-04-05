@@ -64,9 +64,6 @@ public class AccountService {
         String accountNumber = AccountNumberGenerator.generateTimestampUUIDAccountNumber();
         account.setAccountNumber(accountNumber);
         account.setBalance(initialBalance);
-
-        // Invalidate user accounts cache
-        evictUserAccountsCache(account.getUserId());
         return accountRepository.save(account);
     }
 
@@ -223,9 +220,5 @@ public class AccountService {
         }
         account.setBalance(account.getBalance().subtract(amount));
         accountRepository.save(account);
-    }
-
-    private void evictUserAccountsCache(UUID userId) {
-        // Manual eviction method if needed; Spring handles this with @CacheEvict
     }
 }

@@ -1,6 +1,5 @@
 package com.ndifreke.core_banking_api.controller;
 
-import com.ndifreke.core_banking_api.account.AccountService;
 import com.ndifreke.core_banking_api.service.savings.SavingsPlanService;
 import com.ndifreke.core_banking_api.dto.savings.SavingsPlanDepositRequest;
 import com.ndifreke.core_banking_api.dto.savings.SavingsPlanRequest;

@@ -1,0 +1,205 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-staging:
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Checkout the code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Set up JDK 17 for building the Java application
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # Step 3: Cache Maven dependencies to speed up builds
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      # Step 4: Update the pre-installed AWS CLI and verify version
+      - name: Update AWS CLI
+        run: |
+          sudo pip install --upgrade awscli
+          aws --version
+
+      # Step 5: Configure AWS credentials for the pipeline
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      # Step 6: Verify the Elastic Beanstalk service role
+      - name: Verify Elastic Beanstalk Service Role
+        run: |
+          echo "Checking aws-elasticbeanstalk-service-role..."
+          aws iam get-role --role-name aws-elasticbeanstalk-service-role
+          echo "Checking attached policies for aws-elasticbeanstalk-service-role..."
+          aws iam list-attached-role-policies --role-name aws-elasticbeanstalk-service-role
+
+      # Step 7: Build and package the application using Maven
+      - name: Build and Package
+        run: ./mvnw clean package -DskipTests
+
+      # Step 8: Install jq for parsing JSON responses
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      # Step 9: Deploy to Elastic Beanstalk
+      - name: Deploy to Elastic Beanstalk
+        run: |
+          # Create a deploy directory and copy the JAR file
+          mkdir -p deploy
+          cp target/core-banking-api-0.0.1-SNAPSHOT.jar deploy/
+
+          # Create a Procfile if it doesn't exist
+          [ -f Procfile ] && cp Procfile deploy/ || echo "web: java -jar core-banking-api-0.0.1-SNAPSHOT.jar" > deploy/Procfile
+
+          # Verify the deploy directory contents
+          echo "Contents of deploy directory:"
+          ls -l deploy/
+
+          # Zip the contents of the deploy directory
+          cd deploy
+          zip -r ../core-banking-api-staging.zip .
+          cd ..
+
+          # Verify the ZIP file contents
+          echo "Contents of core-banking-api-staging.zip:"
+          unzip -l core-banking-api-staging.zip
+
+          # Upload the ZIP file to S3
+          aws s3 cp core-banking-api-staging.zip s3://elasticbeanstalk-us-east-1-960349184759/core-banking-api-staging.zip
+
+          # Set the version label based on the Git SHA
+          VERSION_LABEL="v${{ github.sha }}"
+
+          # Check if the application version already exists
+          echo "Checking if application version $VERSION_LABEL exists..."
+          VERSION_EXISTS=$(aws elasticbeanstalk describe-application-versions \
+            --application-name core-banking-api \
+            --version-label "$VERSION_LABEL" \
+            --query 'ApplicationVersions[0].VersionLabel' \
+            --output text)
+
+          if [ "$VERSION_EXISTS" = "$VERSION_LABEL" ]; then
+            echo "Application version $VERSION_LABEL already exists, skipping creation."
+          else
+            # Create a new application version
+            echo "Creating application version $VERSION_LABEL..."
+            aws elasticbeanstalk create-application-version \
+              --application-name core-banking-api \
+              --version-label "$VERSION_LABEL" \
+              --source-bundle S3Bucket=elasticbeanstalk-us-east-1-960349184759,S3Key=core-banking-api-staging.zip \
+              --process \
+            || { echo "Failed to create application version"; exit 1; }
+
+            # Wait for the application version to be processed
+            echo "Waiting for application version $VERSION_LABEL to be processed..."
+            for i in {1..30}; do
+              STATUS=$(aws elasticbeanstalk describe-application-versions \
+                --application-name core-banking-api \
+                --version-label "$VERSION_LABEL" \
+                --query 'ApplicationVersions[0].Status' \
+                --output text)
+              echo "Current status: $STATUS"
+              if [ "$STATUS" = "PROCESSED" ]; then
+                echo "Application version $VERSION_LABEL is ready!"
+                break
+              elif [ "$STATUS" = "FAILED" ]; then
+                echo "Application version processing failed with status: $STATUS"
+                exit 1
+              fi
+              echo "Waiting for application version to be processed... ($i/30)"
+              sleep 10
+            done
+
+            # Check if the application version is processed after waiting
+            if [ "$STATUS" != "PROCESSED" ]; then
+              echo "Application version not processed after 5 minutes"
+              exit 1
+            fi
+          fi
+
+          # Check the current status of the staging environment
+          echo "Checking staging environment status..."
+          aws elasticbeanstalk describe-environments --environment-names staging > env_status.json
+          cat env_status.json
+
+          # If the environment doesn't exist or is terminated, create a new one
+          if ! jq -e '.Environments[] | select(.EnvironmentName == "staging" and .Status != "Terminated")' env_status.json > /dev/null 2>&1; then
+            echo "Staging environment either doesn't exist or is terminated. Attempting to create..."
+
+            # If the environment exists and is terminated, delete it
+            if jq -e '.Environments[] | select(.EnvironmentName == "staging" and .Status == "Terminated")' env_status.json > /dev/null 2>&1; then
+              echo "Deleting terminated staging environment..."
+              aws elasticbeanstalk terminate-environment --environment-name staging --terminate-resources || true
+
+              # Wait for the environment to be fully deleted
+              for i in {1..30}; do
+                if ! aws elasticbeanstalk describe-environments --environment-names staging | jq -e '.Environments[] | select(.EnvironmentName == "staging")' > /dev/null 2>&1; then
+                  echo "Terminated environment fully deleted."
+                  break
+                fi
+                echo "Waiting for termination to complete... ($i/30)"
+                sleep 10
+              done
+            else
+              echo "No terminated staging environment found, proceeding to create a new one."
+            fi
+
+            # Create a new staging environment
+            echo "Creating staging environment..."
+            aws elasticbeanstalk create-environment \
+              --application-name core-banking-api \
+              --environment-name staging \
+              --solution-stack-name "64bit Amazon Linux 2023 v4.5.0 running Corretto 17" \
+              --option-settings \
+                Namespace=aws:autoscaling:launchconfiguration,OptionName=InstanceType,Value=t3.micro \
+                Namespace=aws:autoscaling:launchconfiguration,OptionName=IamInstanceProfile,Value=aws-elasticbeanstalk-ec2-role \
+            || { echo "Failed to create environment"; cat env_status.json; exit 1; }
+
+            # Wait for the environment to become ready
+            for i in {1..90}; do
+              STATUS=$(aws elasticbeanstalk describe-environments --environment-names staging --query 'Environments[0].Status' --output text)
+              echo "Current status: $STATUS"
+              if [ "$STATUS" = "Ready" ]; then
+                echo "Staging environment ready!"
+                break
+              elif [ "$STATUS" = "Failed" ] || [ "$STATUS" = "Terminated" ]; then
+                echo "Environment creation failed with status: $STATUS"
+                exit 1
+              fi
+              echo "Waiting for staging environment... ($i/90)"
+              sleep 10
+            done
+
+            # Check if the environment is ready after waiting
+            if [ "$STATUS" != "Ready" ]; then
+              echo "Environment not ready after 15 minutes"
+              exit 1
+            fi
+          else
+            echo "Staging environment already exists and is usable."
+          fi
+
+          # Update the environment with the application version
+          echo "Updating environment with version $VERSION_LABEL..."
+          aws elasticbeanstalk update-environment \
+            --application-name core-banking-api \
+            --environment-name staging \
+            --version-label "$VERSION_LABEL" \
+          || { echo "Failed to update environment"; exit 1; }
